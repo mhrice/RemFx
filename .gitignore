@@ -1,0 +1,6 @@
+.ipynb_checkpoints/
+env/
+wandb/
+*.egg-info/
+data/
+.DS_Store
