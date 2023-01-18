@@ -7,7 +7,7 @@ from audio_diffusion_pytorch import AudioDiffusionModel
 
 import sys
 
-sys.path.append("/Users/matthewrice/Developer/remfx/umx/")
+sys.path.append("./umx")
 from umx.openunmix.model import OpenUnmix, Separator
 
 
