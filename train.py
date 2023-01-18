@@ -12,7 +12,7 @@ TRAIN_SPLIT = 0.8
 
 def main():
     wandb_logger = WandbLogger(project="RemFX", save_dir="./")
-    trainer = pl.Trainer(logger=wandb_logger, max_epochs=10)
+    trainer = pl.Trainer(logger=wandb_logger, max_epochs=100)
     guitfx = GuitarFXDataset(
         root="./data/egfx",
         sample_rate=SAMPLE_RATE,

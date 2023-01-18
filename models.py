@@ -71,23 +71,26 @@ class OpenUnmixModel(pl.LightningModule):
                 sample_rate=SAMPLE_RATE,
                 n_fft=self.n_fft,
                 n_hop=self.hop_length,
-            )
+            ).to(self.device)
             outputs = s(x).squeeze(1)
             log_wandb_audio_batch(
+                logger=self.logger,
                 id="sample",
-                samples=x,
+                samples=x.cpu(),
                 sampling_rate=SAMPLE_RATE,
                 caption=f"Epoch {self.current_epoch}",
             )
             log_wandb_audio_batch(
+                logger=self.logger,
                 id="prediction",
-                samples=outputs,
+                samples=outputs.cpu(),
                 sampling_rate=SAMPLE_RATE,
                 caption=f"Epoch {self.current_epoch}",
             )
             log_wandb_audio_batch(
+                logger=self.loggger,
                 id="target",
-                samples=target,
+                samples=target.cpu(),
                 sampling_rate=SAMPLE_RATE,
                 caption=f"Epoch {self.current_epoch}",
             )
@@ -146,12 +149,16 @@ class DiffusionGenerationModel(pl.LightningModule):
 
 
 def log_wandb_audio_batch(
-    id: str, samples: Tensor, sampling_rate: int, caption: str = ""
+    logger: pl.loggers.WandbLogger,
+    id: str,
+    samples: Tensor,
+    sampling_rate: int,
+    caption: str = "",
 ):
     num_items = samples.shape[0]
     samples = rearrange(samples, "b c t -> b t c")
     for idx in range(num_items):
-        wandb.log(
+        logger.experiment.log(
             {
                 f"{id}_{idx}": wandb.Audio(
                     samples[idx].cpu().numpy(),
