@@ -3,17 +3,18 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader
 from datasets import GuitarFXDataset
-from models import AudioDiffusionWrapper
+from models import DiffusionGenerationModel, OpenUnmixModel
+
 
 SAMPLE_RATE = 22050
 TRAIN_SPLIT = 0.8
 
 
 def main():
-    # wandb_logger = WandbLogger(project="RemFX", save_dir="./")
-    trainer = pl.Trainer()  # logger=wandb_logger)
+    wandb_logger = WandbLogger(project="RemFX", save_dir="./")
+    trainer = pl.Trainer(logger=wandb_logger, max_epochs=10)
     guitfx = GuitarFXDataset(
-        root="/Users/matthewrice/mir_datasets/egfxset",
+        root="/Users/matthewrice/Developer/remfx/data/egfx",
         sample_rate=SAMPLE_RATE,
         effect_type=["Phaser"],
     )
@@ -24,7 +25,10 @@ def main():
     )
     train = DataLoader(train_dataset, batch_size=2)
     val = DataLoader(val_dataset, batch_size=2)
-    model = AudioDiffusionWrapper()
+
+    # model = DiffusionGenerationModel()
+    model = OpenUnmixModel()
+
     trainer.fit(model=model, train_dataloaders=train, val_dataloaders=val)
 
 

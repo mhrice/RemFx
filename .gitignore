@@ -5,3 +5,5 @@ wandb/
 data/
 .DS_Store
 __pycache__/
+lightning_logs/
+RemFX/

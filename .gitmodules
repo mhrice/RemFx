@@ -1,0 +1,3 @@
+[submodule "umx"]
+	path = umx
+	url = https://github.com/sigsep/open-unmix-pytorch
