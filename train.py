@@ -14,7 +14,7 @@ def main():
     wandb_logger = WandbLogger(project="RemFX", save_dir="./")
     trainer = pl.Trainer(logger=wandb_logger, max_epochs=10)
     guitfx = GuitarFXDataset(
-        root="/Users/matthewrice/Developer/remfx/data/egfx",
+        root="./data/egfx",
         sample_rate=SAMPLE_RATE,
         effect_type=["Phaser"],
     )
