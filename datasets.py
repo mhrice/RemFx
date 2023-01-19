@@ -31,8 +31,10 @@ class GuitarFXDataset(Dataset):
             ]
         for i, effect in enumerate(effect_type):
             for pickup in Path(self.root / effect).iterdir():
-                self.wet_files += list(pickup.glob("*.wav"))
-                self.dry_files += list(self.root.glob(f"Clean/{pickup.name}/**/*.wav"))
+                self.wet_files += sorted(list(pickup.glob("*.wav")))
+                self.dry_files += sorted(
+                    list(self.root.glob(f"Clean/{pickup.name}/**/*.wav"))
+                )
                 self.labels += [i] * len(self.wet_files)
         print(
             f"Found {len(self.wet_files)} wet files and {len(self.dry_files)} dry files"
