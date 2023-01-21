@@ -147,7 +147,7 @@ class DiffusionGenerationModel(nn.Module):
         return self.model(x)
 
     def sample(self, x: Tensor, num_steps: int = 10) -> Tensor:
-        noise = torch.randn(x.shape)
+        noise = torch.randn(x.shape).to(x)
         return self.model.sample(noise, num_steps=num_steps)
 
 
