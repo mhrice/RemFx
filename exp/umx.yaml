@@ -1,0 +1,18 @@
+# @package _global_
+model: 
+  _target_: models.RemFXModel
+  lr: 1e-4
+  lr_beta1: 0.95
+  lr_beta2: 0.999
+  lr_eps: 1e-6
+  lr_weight_decay: 1e-3
+  network:
+    _target_: models.OpenUnmixModel
+    n_fft: 2048
+    hop_length: 512
+    n_channels: 1
+    alpha: 0.3
+    sample_rate: ${sample_rate}
+datamodule:
+  dataset:
+    effect_types: ["RAT"]

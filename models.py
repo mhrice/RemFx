@@ -1,9 +1,10 @@
 import torch
-from torch import Tensor
+from torch import Tensor, nn
 import pytorch_lightning as pl
 from einops import rearrange
 import wandb
 from audio_diffusion_pytorch import AudioDiffusionModel
+import auraloss
 
 import sys
 
@@ -14,50 +15,49 @@ from umx.openunmix.model import OpenUnmix, Separator
 SAMPLE_RATE = 22050  # From audio-diffusion-pytorch
 
 
-class OpenUnmixModel(pl.LightningModule):
+class RemFXModel(pl.LightningModule):
     def __init__(
         self,
-        n_fft: int = 2048,
-        hop_length: int = 512,
-        alpha: float = 0.3,
+        lr: float,
+        lr_beta1: float,
+        lr_beta2: float,
+        lr_eps: float,
+        lr_weight_decay: float,
+        network: nn.Module,
     ):
         super().__init__()
-        self.model = OpenUnmix(
-            nb_channels=1,
-            nb_bins=n_fft // 2 + 1,
-        )
-        self.n_fft = n_fft
-        self.hop_length = hop_length
-        self.alpha = alpha
-        window = torch.hann_window(n_fft)
-        self.register_buffer("window", window)
+        self.lr = lr
+        self.lr_beta1 = lr_beta1
+        self.lr_beta2 = lr_beta2
+        self.lr_eps = lr_eps
+        self.lr_weight_decay = lr_weight_decay
+        self.model = network
 
-    def forward(self, x: torch.Tensor):
-        return self.model(x)
+    @property
+    def device(self):
+        return next(self.model.parameters()).device
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(
+            list(self.model.parameters()),
+            lr=self.lr,
+            betas=(self.lr_beta1, self.lr_beta2),
+            eps=self.lr_eps,
+            weight_decay=self.lr_weight_decay,
+        )
+        return optimizer
 
     def training_step(self, batch, batch_idx):
-        loss, _ = self.common_step(batch, batch_idx, mode="train")
+        loss = self.common_step(batch, batch_idx, mode="train")
         return loss
 
     def validation_step(self, batch, batch_idx):
-        loss, Y = self.common_step(batch, batch_idx, mode="val")
-        return loss, Y
+        loss = self.common_step(batch, batch_idx, mode="valid")
 
     def common_step(self, batch, batch_idx, mode: str = "train"):
-        x, target, label = batch
-        X = spectrogram(x, self.window, self.n_fft, self.hop_length, self.alpha)
-        Y = self(X)
-        Y_hat = spectrogram(
-            target, self.window, self.n_fft, self.hop_length, self.alpha
-        )
-        loss = torch.nn.functional.mse_loss(Y, Y_hat)
-        self.log(f"{mode}_loss", loss, on_step=True, on_epoch=True)
-        return loss, Y
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(
-            self.parameters(), lr=1e-4, betas=(0.95, 0.999), eps=1e-6, weight_decay=1e-3
-        )
+        loss = self.model(batch)
+        self.log(f"{mode}_loss", loss)
+        return loss
 
     def on_validation_epoch_start(self):
         self.log_next = True
@@ -65,14 +65,7 @@ class OpenUnmixModel(pl.LightningModule):
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
         if self.log_next:
             x, target, label = batch
-            s = Separator(
-                target_models={"other": self.model},
-                nb_channels=1,
-                sample_rate=SAMPLE_RATE,
-                n_fft=self.n_fft,
-                n_hop=self.hop_length,
-            ).to(self.device)
-            outputs = s(x).squeeze(1)
+            y = self.model.sample(x)
             log_wandb_audio_batch(
                 logger=self.logger,
                 id="sample",
@@ -83,12 +76,12 @@ class OpenUnmixModel(pl.LightningModule):
             log_wandb_audio_batch(
                 logger=self.logger,
                 id="prediction",
-                samples=outputs.cpu(),
+                samples=y.cpu(),
                 sampling_rate=SAMPLE_RATE,
                 caption=f"Epoch {self.current_epoch}",
             )
             log_wandb_audio_batch(
-                logger=self.loggger,
+                logger=self.logger,
                 id="target",
                 samples=target.cpu(),
                 sampling_rate=SAMPLE_RATE,
@@ -97,55 +90,65 @@ class OpenUnmixModel(pl.LightningModule):
             self.log_next = False
 
 
-class DiffusionGenerationModel(pl.LightningModule):
-    def __init__(self, model: torch.nn.Module):
+class OpenUnmixModel(torch.nn.Module):
+    def __init__(
+        self,
+        n_fft: int = 2048,
+        hop_length: int = 512,
+        n_channels: int = 1,
+        alpha: float = 0.3,
+        sample_rate: int = 22050,
+    ):
         super().__init__()
-        self.model = model
+        self.n_channels = n_channels
+        self.n_fft = n_fft
+        self.hop_length = hop_length
+        self.alpha = alpha
+        window = torch.hann_window(n_fft)
+        self.register_buffer("window", window)
 
-    def forward(self, x: torch.Tensor):
+        self.num_bins = self.n_fft // 2 + 1
+        self.sample_rate = sample_rate
+        self.model = OpenUnmix(
+            nb_channels=self.n_channels,
+            nb_bins=self.num_bins,
+        )
+        self.separator = Separator(
+            target_models={"other": self.model},
+            nb_channels=self.n_channels,
+            sample_rate=self.sample_rate,
+            n_fft=self.n_fft,
+            n_hop=self.hop_length,
+        )
+        self.loss_fn = auraloss.freq.MultiResolutionSTFTLoss(
+            n_bins=self.num_bins, sample_rate=self.sample_rate
+        )
+
+    def forward(self, batch):
+        x, target, label = batch
+        X = spectrogram(x, self.window, self.n_fft, self.hop_length, self.alpha)
+        Y = self.model(X)
+        sep_out = self.separator(x).squeeze(1)
+        loss = self.loss_fn(sep_out, target)
+
+        return loss
+
+    def sample(self, x: Tensor) -> Tensor:
+        return self.separator(x).squeeze(1)
+
+
+class DiffusionGenerationModel(nn.Module):
+    def __init__(self, n_channels: int = 1):
+        super().__init__()
+        self.model = AudioDiffusionModel(in_channels=n_channels)
+
+    def forward(self, batch):
+        x, target, label = batch
         return self.model(x)
 
-    def sample(self, *args, **kwargs) -> Tensor:
-        return self.model.sample(*args, **kwargs)
-
-    def training_step(self, batch, batch_idx):
-        loss = self.common_step(batch, batch_idx, mode="train")
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        loss = self.common_step(batch, batch_idx, mode="val")
-
-    def common_step(self, batch, batch_idx, mode: str = "train"):
-        x, target, label = batch
-        loss = self(x)
-        self.log(f"{mode}_loss", loss, on_step=True, on_epoch=True)
-        return loss
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(
-            self.parameters(), lr=1e-4, betas=(0.95, 0.999), eps=1e-6, weight_decay=1e-3
-        )
-
-    def on_validation_epoch_start(self):
-        self.log_next = True
-
-    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-        x, target, label = batch
-        if self.log_next:
-            self.log_sample(x)
-            self.log_next = False
-
-    @torch.no_grad()
-    def log_sample(self, batch, num_steps=10):
-        # Get start diffusion noise
-        noise = torch.randn(batch.shape, device=self.device)
-        sampled = self.sample(noise=noise, num_steps=num_steps)  # Suggested range: 2-50
-        log_wandb_audio_batch(
-            id="sample",
-            samples=sampled,
-            sampling_rate=SAMPLE_RATE,
-            caption=f"Sampled in {num_steps} steps",
-        )
+    def sample(self, x: Tensor, num_steps: int = 10) -> Tensor:
+        noise = torch.randn(x.shape)
+        return self.model.sample(noise, num_steps=num_steps)
 
 
 def log_wandb_audio_batch(

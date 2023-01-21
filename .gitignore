@@ -7,3 +7,5 @@ data/
 __pycache__/
 lightning_logs/
 RemFX/
+outputs/
+logs/

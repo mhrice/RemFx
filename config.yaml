@@ -1,0 +1,50 @@
+defaults:
+  - _self_
+  - exp: null
+seed: 12345
+train: True
+length: 262144
+sample_rate: 22050
+logs_dir: "./logs"
+log_every_n_steps: 1000
+
+callbacks:
+  model_checkpoint:
+    _target_: pytorch_lightning.callbacks.ModelCheckpoint
+    monitor: "valid_loss"   # name of the logged metric which determines when model is improving
+    save_top_k: 1           # save k best models (determined by above metric)
+    save_last: True         # additionaly always save model from last epoch
+    mode: "min"             # can be "max" or "min"
+    verbose: False
+    dirpath: ${logs_dir}/ckpts/${now:%Y-%m-%d-%H-%M-%S}
+    filename: '{epoch:02d}-{valid_loss:.3f}'
+
+datamodule:
+  _target_: datasets.Datamodule
+  dataset:
+    _target_: datasets.GuitarFXDataset
+    sample_rate: ${sample_rate}
+    root: ${oc.env:DATASET_ROOT}
+    length: ${length}
+  val_split: 0.2
+  batch_size: 16
+  num_workers: 8
+  pin_memory: True
+
+logger:
+  _target_: pytorch_lightning.loggers.WandbLogger
+  project: ${oc.env:WANDB_PROJECT}
+  entity: ${oc.env:WANDB_ENTITY}
+  # offline: False  # set True to store all logs only locally
+  job_type: "train"
+  group: ""
+  save_dir: "."
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  precision: 32 # Precision used for tensors, default `32`
+  min_epochs: 0
+  max_epochs: -1
+  enable_model_summary: False
+  log_every_n_steps: 1 # Logs metrics every N batches
+  accumulate_grad_batches: 1

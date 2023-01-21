@@ -42,6 +42,8 @@ setup(
         "ema_pytorch",
         "einops",
         "librosa",
+        "hydra-core",
+        "auraloss",
     ],
     include_package_data=True,
     license="Apache License 2.0",

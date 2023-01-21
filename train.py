@@ -1,35 +1,50 @@
 from pytorch_lightning.loggers import WandbLogger
 import pytorch_lightning as pl
-import torch
 from torch.utils.data import DataLoader
 from datasets import GuitarFXDataset
 from models import DiffusionGenerationModel, OpenUnmixModel
+import hydra
+from omegaconf import DictConfig
+import utils
+
+log = utils.get_logger(__name__)
 
 
-SAMPLE_RATE = 22050
-TRAIN_SPLIT = 0.8
+@hydra.main(version_base=None, config_path=".", config_name="config.yaml")
+def main(cfg: DictConfig):
+    # Apply seed for reproducibility
+    print(cfg)
+    pl.seed_everything(cfg.seed)
 
+    log.info(f"Instantiating datamodule <{cfg.datamodule._target_}>.")
+    datamodule = hydra.utils.instantiate(cfg.datamodule, _convert_="partial")
 
-def main():
-    wandb_logger = WandbLogger(project="RemFX", save_dir="./")
-    trainer = pl.Trainer(logger=wandb_logger, max_epochs=100)
-    guitfx = GuitarFXDataset(
-        root="./data/egfx",
-        sample_rate=SAMPLE_RATE,
-        effect_type=["Phaser"],
+    log.info(f"Instantiating model <{cfg.model._target_}>.")
+    model = hydra.utils.instantiate(cfg.model, _convert_="partial")
+
+    # Init all callbacks
+    callbacks = []
+    if "callbacks" in cfg:
+        for _, cb_conf in cfg["callbacks"].items():
+            if "_target_" in cb_conf:
+                log.info(f"Instantiating callback <{cb_conf._target_}>.")
+                callbacks.append(hydra.utils.instantiate(cb_conf, _convert_="partial"))
+
+    logger = hydra.utils.instantiate(cfg.logger, _convert_="partial")
+    log.info(f"Instantiating trainer <{cfg.trainer._target_}>.")
+    trainer = hydra.utils.instantiate(
+        cfg.trainer, callbacks=callbacks, logger=logger, _convert_="partial"
     )
-    train_size = int(TRAIN_SPLIT * len(guitfx))
-    val_size = len(guitfx) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(
-        guitfx, [train_size, val_size]
+    log.info("Logging hyperparameters!")
+    utils.log_hyperparameters(
+        config=cfg,
+        model=model,
+        datamodule=datamodule,
+        trainer=trainer,
+        callbacks=callbacks,
+        logger=logger,
     )
-    train = DataLoader(train_dataset, batch_size=2)
-    val = DataLoader(val_dataset, batch_size=2)
-
-    # model = DiffusionGenerationModel()
-    model = OpenUnmixModel()
-
-    trainer.fit(model=model, train_dataloaders=train, val_dataloaders=val)
+    trainer.fit(model=model, datamodule=datamodule)
 
 
 if __name__ == "__main__":
