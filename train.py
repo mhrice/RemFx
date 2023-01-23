@@ -2,10 +2,10 @@ from pytorch_lightning.loggers import WandbLogger
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from datasets import GuitarFXDataset
-from models import DiffusionGenerationModel, OpenUnmixModel
+from remfx.models import DiffusionGenerationModel, OpenUnmixModel
 import hydra
 from omegaconf import DictConfig
-import utils
+import remfx.utils as utils
 
 log = utils.get_logger(__name__)
 

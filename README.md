@@ -2,6 +2,7 @@
 ## Install Packages
 `python3 -m venv env`
 `pip install -e .`
+`pip install -e umx`
 
 ## Download [GuitarFX Dataset] (https://zenodo.org/record/7044411/)
 `./download_egfx.sh`

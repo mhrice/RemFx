@@ -4,7 +4,7 @@ defaults:
 seed: 12345
 train: True
 length: 262144
-sample_rate: 22050
+sample_rate: 48000
 logs_dir: "./logs"
 log_every_n_steps: 1000
 
