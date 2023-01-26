@@ -1,15 +1,17 @@
+import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import torchaudio
 import torchaudio.transforms as T
 import torch.nn.functional as F
 from pathlib import Path
 import pytorch_lightning as pl
-from typing import Any, List
+from typing import Any, List, Tuple
 
 # https://zenodo.org/record/7044411/
 
 LENGTH = 2**18  # 12 seconds
 ORIG_SR = 48000
+torch.manual_seed(123)
 
 
 class GuitarFXDataset(Dataset):
@@ -18,13 +20,18 @@ class GuitarFXDataset(Dataset):
         root: str,
         sample_rate: int,
         length: int = LENGTH,
+        chunk_size_in_sec: int = 3,
+        num_chunks: int = 10,
         effect_types: List[str] = None,
     ):
         self.length = length
         self.wet_files = []
         self.dry_files = []
+        self.chunks = []
         self.labels = []
         self.root = Path(root)
+        self.chunk_size_in_sec = chunk_size_in_sec
+        self.num_chunks = num_chunks
 
         if effect_types is None:
             effect_types = [
@@ -32,36 +39,62 @@ class GuitarFXDataset(Dataset):
             ]
         for i, effect in enumerate(effect_types):
             for pickup in Path(self.root / effect).iterdir():
-                self.wet_files += sorted(list(pickup.glob("*.wav")))
-                self.dry_files += sorted(
+                wet_files = sorted(list(pickup.glob("*.wav")))
+                dry_files = sorted(
                     list(self.root.glob(f"Clean/{pickup.name}/**/*.wav"))
                 )
-                self.labels += [i] * len(self.wet_files)
+                self.wet_files += wet_files
+                self.dry_files += dry_files
+                self.labels += [i] * len(wet_files)
+                for audio_file in wet_files:
+                    chunks = create_random_chunks(
+                        audio_file, self.chunk_size_in_sec, self.num_chunks
+                    )
+                    self.chunks += chunks
         print(
-            f"Found {len(self.wet_files)} wet files and {len(self.dry_files)} dry files"
+            f"Found {len(self.wet_files)} wet files and {len(self.dry_files)} dry files.\n"
+            f"Total chunks: {len(self.chunks)}"
         )
         self.resampler = T.Resample(ORIG_SR, sample_rate)
 
     def __len__(self):
-        return len(self.dry_files)
+        return len(self.chunks)
 
     def __getitem__(self, idx):
-        x, sr = torchaudio.load(self.wet_files[idx])
-        y, sr = torchaudio.load(self.dry_files[idx])
-        effect_label = self.labels[idx]
+        # Load effected and "clean" audio
+        song_idx = idx // self.num_chunks
+        x, sr = torchaudio.load(self.wet_files[song_idx])
+        y, sr = torchaudio.load(self.dry_files[song_idx])
+        effect_label = self.labels[song_idx]  # Effect label
+
+        chunk_indices = self.chunks[idx]
+        x = x[:, chunk_indices[0] : chunk_indices[1]]
+        y = y[:, chunk_indices[0] : chunk_indices[1]]
 
         resampled_x = self.resampler(x)
         resampled_y = self.resampler(y)
-        # Pad or crop to length
+        # Pad to length if needed
         if resampled_x.shape[-1] < self.length:
             resampled_x = F.pad(resampled_x, (0, self.length - resampled_x.shape[1]))
-        elif resampled_x.shape[-1] > self.length:
-            resampled_x = resampled_x[:, : self.length]
         if resampled_y.shape[-1] < self.length:
             resampled_y = F.pad(resampled_y, (0, self.length - resampled_y.shape[1]))
-        elif resampled_y.shape[-1] > self.length:
-            resampled_y = resampled_y[:, : self.length]
         return (resampled_x, resampled_y, effect_label)
+
+
+def create_random_chunks(
+    audio_file: str, chunk_size: int, num_chunks: int
+) -> List[Tuple[int, int]]:
+    """Create random chunks of size chunk_size (seconds) from an audio file.
+    Return sample_indices
+    """
+    audio, sr = torchaudio.load(audio_file)
+    chunk_size_in_samples = chunk_size * sr
+    chunks = []
+    for i in range(num_chunks):
+        start = torch.randint(0, audio.shape[-1] - chunk_size_in_samples, (1,)).item()
+        end = start + chunk_size_in_samples
+        chunks.append((start, end))
+    return chunks
 
 
 class Datamodule(pl.LightningDataModule):

@@ -6,7 +6,7 @@ import remfx.utils as utils
 log = utils.get_logger(__name__)
 
 
-@hydra.main(version_base=None, config_path=".", config_name="config.yaml")
+@hydra.main(version_base=None, config_path="../", config_name="config.yaml")
 def main(cfg: DictConfig):
     # Apply seed for reproducibility
     print(cfg)
@@ -14,7 +14,6 @@ def main(cfg: DictConfig):
 
     log.info(f"Instantiating datamodule <{cfg.datamodule._target_}>.")
     datamodule = hydra.utils.instantiate(cfg.datamodule, _convert_="partial")
-
     log.info(f"Instantiating model <{cfg.model._target_}>.")
     model = hydra.utils.instantiate(cfg.model, _convert_="partial")
 
