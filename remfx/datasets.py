@@ -11,7 +11,6 @@ from typing import Any, List, Tuple
 
 LENGTH = 2**18  # 12 seconds
 ORIG_SR = 48000
-torch.manual_seed(123)
 
 
 class GuitarFXDataset(Dataset):

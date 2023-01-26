@@ -9,8 +9,8 @@ log = utils.get_logger(__name__)
 @hydra.main(version_base=None, config_path="../", config_name="config.yaml")
 def main(cfg: DictConfig):
     # Apply seed for reproducibility
-    print(cfg)
-    pl.seed_everything(cfg.seed)
+    if cfg.seed:
+        pl.seed_everything(cfg.seed)
 
     log.info(f"Instantiating datamodule <{cfg.datamodule._target_}>.")
     datamodule = hydra.utils.instantiate(cfg.datamodule, _convert_="partial")
