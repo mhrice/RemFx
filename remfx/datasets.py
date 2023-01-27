@@ -20,7 +20,6 @@ class GuitarFXDataset(Dataset):
         sample_rate: int,
         length: int = LENGTH,
         chunk_size_in_sec: int = 3,
-        num_chunks: int = 10,
         effect_types: List[str] = None,
     ):
         self.length = length
@@ -30,7 +29,6 @@ class GuitarFXDataset(Dataset):
         self.labels = []
         self.root = Path(root)
         self.chunk_size_in_sec = chunk_size_in_sec
-        self.num_chunks = num_chunks
 
         if effect_types is None:
             effect_types = [
@@ -46,10 +44,10 @@ class GuitarFXDataset(Dataset):
                 self.dry_files += dry_files
                 self.labels += [i] * len(wet_files)
                 for audio_file in wet_files:
-                    chunks = create_random_chunks(
+                    chunk_starts = create_sequential_chunks(
                         audio_file, self.chunk_size_in_sec, self.num_chunks
                     )
-                    self.chunks += chunks
+                    self.chunks += chunk_starts
         print(
             f"Found {len(self.wet_files)} wet files and {len(self.dry_files)} dry files.\n"
             f"Total chunks: {len(self.chunks)}"
@@ -67,8 +65,9 @@ class GuitarFXDataset(Dataset):
         effect_label = self.labels[song_idx]  # Effect label
 
         chunk_indices = self.chunks[idx]
-        x = x[:, chunk_indices[0] : chunk_indices[1]]
-        y = y[:, chunk_indices[0] : chunk_indices[1]]
+        chunk_size_in_samples = self.chunk_size * sr
+        x = x[:, chunk_indices[0] : chunk_indices[0] + chunk_size_in_samples]
+        y = y[:, chunk_indices[0] : chunk_indices[0] + chunk_size_in_samples]
 
         resampled_x = self.resampler(x)
         resampled_y = self.resampler(y)
@@ -83,8 +82,9 @@ class GuitarFXDataset(Dataset):
 def create_random_chunks(
     audio_file: str, chunk_size: int, num_chunks: int
 ) -> List[Tuple[int, int]]:
-    """Create random chunks of size chunk_size (seconds) from an audio file.
-    Return sample_indices
+    """Create num_chunks random chunks of size chunk_size (seconds)
+    from an audio file.
+    Return sample_index of start of each chunk
     """
     audio, sr = torchaudio.load(audio_file)
     chunk_size_in_samples = chunk_size * sr
@@ -93,9 +93,18 @@ def create_random_chunks(
     chunks = []
     for i in range(num_chunks):
         start = torch.randint(0, audio.shape[-1] - chunk_size_in_samples, (1,)).item()
-        end = start + chunk_size_in_samples
-        chunks.append((start, end))
+        chunks.append(start)
     return chunks
+
+
+def create_sequential_chunks(audio_file: str, chunk_size: int) -> List[Tuple[int, int]]:
+    """Create sequential chunks of size chunk_size (seconds) from an audio file.
+    Return sample_index of start of each chunk
+    """
+    audio, sr = torchaudio.load(audio_file)
+    chunk_size_in_samples = chunk_size * sr
+    chunk_starts = torch.arange(0, audio.shape[-1], chunk_size_in_samples)
+    return chunk_starts
 
 
 class Datamodule(pl.LightningDataModule):
