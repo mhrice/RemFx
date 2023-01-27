@@ -17,5 +17,6 @@ wget https://zenodo.org/record/7044411/files/Sweep-Echo.zip?download=1 -O Sweep-
 wget https://zenodo.org/record/7044411/files/TapeEcho.zip?download=1 -O TapeEcho.zip
 wget https://zenodo.org/record/7044411/files/TubeScreamer.zip?download=1 -O TubeScreamer.zip
 unzip -n \*.zip
+rm -rf *.zip
 
 

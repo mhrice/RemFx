@@ -73,6 +73,7 @@ class RemFXModel(pl.LightningModule):
                 on_epoch=True,
                 logger=True,
                 prog_bar=True,
+                sync_dist=True,
             )
 
         return loss
@@ -83,18 +84,21 @@ class RemFXModel(pl.LightningModule):
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
         if self.log_next:
             x, target, label = batch
-            y = self.model.sample(x)
+            self.model.eval()
+            with torch.no_grad():
+                y = self.model.sample(x)
 
             # Concat samples together for easier viewing in dashboard
-            concat_samples = torch.cat([x, y, target], dim=-1)
+            concat_samples = torch.cat([y, x, target], dim=-1)
             log_wandb_audio_batch(
                 logger=self.logger,
-                id="prediction_sample_target",
+                id="prediction_input_target",
                 samples=concat_samples.cpu(),
                 sampling_rate=self.sample_rate,
                 caption=f"Epoch {self.current_epoch}",
             )
             self.log_next = False
+            self.model.train()
 
 
 class OpenUnmixModel(torch.nn.Module):

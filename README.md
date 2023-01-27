@@ -3,7 +3,8 @@
 1. `python3 -m venv env`
 2. `source env/bin/activate`
 3. `pip install -e .`
-4. `pip install -e umx`
+4. `git submodule update --init --recursive`
+5. `pip install -e umx`
 
 ## Download [GuitarFX Dataset] (https://zenodo.org/record/7044411/)
 `./scripts/download_egfx.sh`

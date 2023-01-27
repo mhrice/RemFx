@@ -88,6 +88,8 @@ def create_random_chunks(
     """
     audio, sr = torchaudio.load(audio_file)
     chunk_size_in_samples = chunk_size * sr
+    if chunk_size_in_samples >= audio.shape[-1]:
+        chunk_size_in_samples = audio.shape[-1] - 1
     chunks = []
     for i in range(num_chunks):
         start = torch.randint(0, audio.shape[-1] - chunk_size_in_samples, (1,)).item()
