@@ -27,6 +27,7 @@ class GuitarFXDataset(Dataset):
         self.dry_files = []
         self.chunks = []
         self.labels = []
+        self.song_idx = []
         self.root = Path(root)
         self.chunk_size_in_sec = chunk_size_in_sec
 
@@ -34,6 +35,7 @@ class GuitarFXDataset(Dataset):
             effect_types = [
                 d.name for d in self.root.iterdir() if d.is_dir() and d != "Clean"
             ]
+        current_file = 0
         for i, effect in enumerate(effect_types):
             for pickup in Path(self.root / effect).iterdir():
                 wet_files = sorted(list(pickup.glob("*.wav")))
@@ -45,9 +47,11 @@ class GuitarFXDataset(Dataset):
                 self.labels += [i] * len(wet_files)
                 for audio_file in wet_files:
                     chunk_starts = create_sequential_chunks(
-                        audio_file, self.chunk_size_in_sec, self.num_chunks
+                        audio_file, self.chunk_size_in_sec
                     )
                     self.chunks += chunk_starts
+                    self.song_idx += [current_file] * len(chunk_starts)
+                    current_file += 1
         print(
             f"Found {len(self.wet_files)} wet files and {len(self.dry_files)} dry files.\n"
             f"Total chunks: {len(self.chunks)}"
@@ -59,15 +63,16 @@ class GuitarFXDataset(Dataset):
 
     def __getitem__(self, idx):
         # Load effected and "clean" audio
-        song_idx = idx // self.num_chunks
+        print("HEY")
+        song_idx = self.song_idx[idx]
         x, sr = torchaudio.load(self.wet_files[song_idx])
         y, sr = torchaudio.load(self.dry_files[song_idx])
         effect_label = self.labels[song_idx]  # Effect label
 
-        chunk_indices = self.chunks[idx]
-        chunk_size_in_samples = self.chunk_size * sr
-        x = x[:, chunk_indices[0] : chunk_indices[0] + chunk_size_in_samples]
-        y = y[:, chunk_indices[0] : chunk_indices[0] + chunk_size_in_samples]
+        chunk_start = self.chunks[idx]
+        chunk_size_in_samples = self.chunk_size_in_sec * sr
+        x = x[:, chunk_start : chunk_start + chunk_size_in_samples]
+        y = y[:, chunk_start : chunk_start + chunk_size_in_samples]
 
         resampled_x = self.resampler(x)
         resampled_y = self.resampler(y)

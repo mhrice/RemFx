@@ -26,8 +26,7 @@ datamodule:
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
     length: ${length}
-    chunk_size_in_sec: 6
-    num_chunks: 10
+    chunk_size_in_sec: 3
   val_split: 0.2
   batch_size: 16
   num_workers: 8
