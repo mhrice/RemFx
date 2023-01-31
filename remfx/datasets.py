@@ -63,7 +63,6 @@ class GuitarFXDataset(Dataset):
 
     def __getitem__(self, idx):
         # Load effected and "clean" audio
-        print("HEY")
         song_idx = self.song_idx[idx]
         x, sr = torchaudio.load(self.wet_files[song_idx])
         y, sr = torchaudio.load(self.dry_files[song_idx])
