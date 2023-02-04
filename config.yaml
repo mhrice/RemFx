@@ -20,16 +20,18 @@ callbacks:
     filename: '{epoch:02d}-{valid_loss:.3f}'
 
 datamodule:
-  _target_: datasets.Datamodule
+  _target_: remfx.datasets.Datamodule
   dataset:
-    _target_: datasets.GuitarFXDataset
+    _target_: remfx.datasets.GuitarFXDataset
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
     length: ${length}
+    chunk_size_in_sec: 6
   val_split: 0.2
   batch_size: 16
   num_workers: 8
   pin_memory: True
+  persistent_workers: True
 
 logger:
   _target_: pytorch_lightning.loggers.WandbLogger

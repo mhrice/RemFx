@@ -4,7 +4,9 @@ import pytorch_lightning as pl
 from einops import rearrange
 import wandb
 from audio_diffusion_pytorch import DiffusionModel
-import auraloss
+from auraloss.time import SISDRLoss
+from auraloss.freq import MultiResolutionSTFTLoss, STFTLoss
+from torch.nn import L1Loss
 
 from umx.openunmix.model import OpenUnmix, Separator
 
@@ -28,6 +30,13 @@ class RemFXModel(pl.LightningModule):
         self.lr_weight_decay = lr_weight_decay
         self.sample_rate = sample_rate
         self.model = network
+        self.metrics = torch.nn.ModuleDict(
+            {
+                "SISDR": SISDRLoss(),
+                "STFT": STFTLoss(),
+                "L1": L1Loss(),
+            }
+        )
 
     @property
     def device(self):
@@ -49,10 +58,24 @@ class RemFXModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         loss = self.common_step(batch, batch_idx, mode="valid")
+        return loss
 
     def common_step(self, batch, batch_idx, mode: str = "train"):
-        loss = self.model(batch)
+        loss, output = self.model(batch)
         self.log(f"{mode}_loss", loss)
+        x, y, label = batch
+        # Metric logging
+        for metric in self.metrics:
+            self.log(
+                f"{mode}_{metric}",
+                self.metrics[metric](output, y),
+                on_step=False,
+                on_epoch=True,
+                logger=True,
+                prog_bar=True,
+                sync_dist=True,
+            )
+
         return loss
 
     def on_validation_epoch_start(self):
@@ -61,29 +84,21 @@ class RemFXModel(pl.LightningModule):
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
         if self.log_next:
             x, target, label = batch
-            y = self.model.sample(x)
+            self.model.eval()
+            with torch.no_grad():
+                y = self.model.sample(x)
+
+            # Concat samples together for easier viewing in dashboard
+            concat_samples = torch.cat([y, x, target], dim=-1)
             log_wandb_audio_batch(
                 logger=self.logger,
-                id="sample",
-                samples=x.cpu(),
-                sampling_rate=self.sample_rate,
-                caption=f"Epoch {self.current_epoch}",
-            )
-            log_wandb_audio_batch(
-                logger=self.logger,
-                id="prediction",
-                samples=y.cpu(),
-                sampling_rate=self.sample_rate,
-                caption=f"Epoch {self.current_epoch}",
-            )
-            log_wandb_audio_batch(
-                logger=self.logger,
-                id="target",
-                samples=target.cpu(),
+                id="prediction_input_target",
+                samples=concat_samples.cpu(),
                 sampling_rate=self.sample_rate,
                 caption=f"Epoch {self.current_epoch}",
             )
             self.log_next = False
+            self.model.train()
 
 
 class OpenUnmixModel(torch.nn.Module):
@@ -116,7 +131,7 @@ class OpenUnmixModel(torch.nn.Module):
             n_fft=self.n_fft,
             n_hop=self.hop_length,
         )
-        self.loss_fn = auraloss.freq.MultiResolutionSTFTLoss(
+        self.loss_fn = MultiResolutionSTFTLoss(
             n_bins=self.num_bins, sample_rate=self.sample_rate
         )
 
@@ -127,7 +142,7 @@ class OpenUnmixModel(torch.nn.Module):
         sep_out = self.separator(x).squeeze(1)
         loss = self.loss_fn(sep_out, target)
 
-        return loss
+        return loss, sep_out
 
     def sample(self, x: Tensor) -> Tensor:
         return self.separator(x).squeeze(1)
@@ -140,7 +155,8 @@ class DiffusionGenerationModel(nn.Module):
 
     def forward(self, batch):
         x, target, label = batch
-        return self.model(x)
+        sampled_out = self.model.sample(x)
+        return self.model(x), sampled_out
 
     def sample(self, x: Tensor, num_steps: int = 10) -> Tensor:
         noise = torch.randn(x.shape).to(x)
