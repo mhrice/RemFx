@@ -6,7 +6,7 @@
 4. `git submodule update --init --recursive`
 5. `pip install -e umx`
 
-## Download [GuitarFX Dataset] (https://zenodo.org/record/7044411/)
+## Download [GuitarFX Dataset](https://zenodo.org/record/7044411/)
 `./scripts/download_egfx.sh`
 
 ## Train model
