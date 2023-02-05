@@ -19,3 +19,20 @@ To add gpu, add `trainer.accelerator='gpu' trainer.devices=-1` to the command-li
 
 Ex. `python train.py exp=umx trainer.accelerator='gpu' trainer.devices=-1`
 
+### Effects
+Default effect is RAT (distortion). Effect choices:
+- BluesDriver
+- Clean
+- Flanger
+- Phaser
+- RAT
+- Sweep Echo
+- TubeScreamer
+- Chorus
+- Digital Delay
+- Hall Reverb
+- Plate Reverb
+- Spring Reverb
+- TapeEcho
+
+Change effect by adding `+datamodule.dataset.effect_types=["{Effect}"]` to the command-line
