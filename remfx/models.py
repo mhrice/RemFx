@@ -67,9 +67,14 @@ class RemFXModel(pl.LightningModule):
         x, y, label = batch
         # Metric logging
         for metric in self.metrics:
+            # SISDR returns negative values, so negate them
+            if metric == "SISDR":
+                negate = -1
+            else:
+                negate = 1
             self.log(
                 f"{mode}_{metric}",
-                self.metrics[metric](output, y),
+                negate * self.metrics[metric](output, y),
                 on_step=False,
                 on_epoch=True,
                 logger=True,
