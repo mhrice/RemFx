@@ -9,7 +9,6 @@ from auraloss.freq import MultiResolutionSTFTLoss, STFTLoss
 from torch.nn import L1Loss
 
 from umx.openunmix.model import OpenUnmix, Separator
-from torchaudio.models import HDemucs
 
 
 class RemFXModel(pl.LightningModule):
@@ -147,25 +146,6 @@ class OpenUnmixModel(torch.nn.Module):
 
     def sample(self, x: Tensor) -> Tensor:
         return self.separator(x).squeeze(1)
-
-
-class DemucsModel(torch.nn.Module):
-    def __init__(self, sample_rate, **kwargs) -> None:
-        super().__init__()
-        self.model = HDemucs(**kwargs)
-        self.num_bins = kwargs["nfft"] // 2 + 1
-        self.loss_fn = MultiResolutionSTFTLoss(
-            n_bins=self.num_bins, sample_rate=sample_rate
-        )
-
-    def forward(self, batch):
-        x, target, label = batch
-        output = self.model(x).squeeze(1)
-        loss = self.loss_fn(output, target)
-        return loss, output
-
-    def sample(self, x: Tensor) -> Tensor:
-        return self.model(x).squeeze(1)
 
 
 class DiffusionGenerationModel(nn.Module):
