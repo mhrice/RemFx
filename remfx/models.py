@@ -86,7 +86,7 @@ class RemFXModel(pl.LightningModule):
 
         return loss
 
-    def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+    def on_train_batch_start(self, batch, batch_idx):
         if self.log_first:
             x, target, label = batch
             for metric in self.metrics:
