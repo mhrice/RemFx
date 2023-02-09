@@ -44,6 +44,8 @@ setup(
         "librosa",
         "hydra-core",
         "auraloss",
+        "pyloudnorm",
+        "pedalboard",
     ],
     include_package_data=True,
     license="Apache License 2.0",

@@ -16,4 +16,9 @@ model:
     sample_rate: ${sample_rate}
 datamodule:
   dataset:
-    effect_types: ["RAT"]
+    effect_types:
+        Distortion:
+          _target_: remfx.effects.RandomPedalboardDistortion
+          sample_rate: ${sample_rate}
+          min_drive_db: -10
+          max_drive_db: 30

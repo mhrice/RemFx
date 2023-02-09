@@ -117,7 +117,11 @@ class RemFXModel(pl.LightningModule):
                 y = self.model.sample(x)
 
             # Concat samples together for easier viewing in dashboard
-            concat_samples = torch.cat([y, x, target], dim=-1)
+            # 2 seconds of silence between each sample
+            silence = torch.zeros_like(x)
+            silence = silence[:, : self.sample_rate * 2]
+
+            concat_samples = torch.cat([y, silence, x, silence, target], dim=-1)
             log_wandb_audio_batch(
                 logger=self.logger,
                 id="prediction_input_target",
