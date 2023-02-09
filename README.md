@@ -10,10 +10,13 @@
 `./scripts/download_egfx.sh`
 
 ## Train model
-1. Change Wandb variables in `shell_vars.sh`
+1. Change Wandb variables in `shell_vars.sh` and `source shell_vars.sh`
 2. `python scripts/train.py exp=audio_diffusion`
 or
 2. `python scripts/train.py exp=umx`
+or
+2. `python scripts/train.py exp=demucs`
+
 
 To add gpu, add `trainer.accelerator='gpu' trainer.devices=-1` to the command-line
 

@@ -38,6 +38,8 @@ class RemFXModel(pl.LightningModule):
                 "L1": L1Loss(),
             }
         )
+        # Log first batch metrics input vs output only once
+        self.log_first = True
 
     @property
     def device(self):
@@ -67,9 +69,14 @@ class RemFXModel(pl.LightningModule):
         x, y, label = batch
         # Metric logging
         for metric in self.metrics:
+            # SISDR returns negative values, so negate them
+            if metric == "SISDR":
+                negate = -1
+            else:
+                negate = 1
             self.log(
                 f"{mode}_{metric}",
-                self.metrics[metric](output, y),
+                negate * self.metrics[metric](output, y),
                 on_step=False,
                 on_epoch=True,
                 logger=True,
@@ -78,6 +85,26 @@ class RemFXModel(pl.LightningModule):
             )
 
         return loss
+
+    def on_train_batch_start(self, batch, batch_idx):
+        if self.log_first:
+            x, target, label = batch
+            for metric in self.metrics:
+                # SISDR returns negative values, so negate them
+                if metric == "SISDR":
+                    negate = -1
+                else:
+                    negate = 1
+                self.log(
+                    f"Input_{metric}",
+                    negate * self.metrics[metric](x, target),
+                    on_step=False,
+                    on_epoch=True,
+                    logger=True,
+                    prog_bar=True,
+                    sync_dist=True,
+                )
+            self.log_first = False
 
     def on_validation_epoch_start(self):
         self.log_next = True
