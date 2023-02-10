@@ -39,7 +39,8 @@ class RemFXModel(pl.LightningModule):
             }
         )
         # Log first batch metrics input vs output only once
-        self.log_first = True
+        self.log_first_metrics = True
+        self.log_train_audio = True
 
     @property
     def device(self):
@@ -87,22 +88,33 @@ class RemFXModel(pl.LightningModule):
         return loss
 
     def on_train_batch_start(self, batch, batch_idx):
-        if self.log_first:
+        if self.log_train_audio:
             x, y, label = batch
+            input_samples = rearrange(x, "b c t -> c (b t)")
+            target_samples = rearrange(y, "b c t -> c (b t)")
+
             log_wandb_audio_batch(
                 logger=self.logger,
-                id="input_target",
-                samples=x.cpu(),
+                id="input_effected_audio",
+                samples=input_samples.cpu(),
                 sampling_rate=self.sample_rate,
                 caption="Training Data",
             )
+            log_wandb_audio_batch(
+                logger=self.logger,
+                id="target_audio",
+                samples=target_samples.cpu(),
+                sampling_rate=self.sample_rate,
+                caption="Target Data",
+            )
+            self.log_train_audio = False
 
     def on_validation_epoch_start(self):
         self.log_next = True
 
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
         x, target, label = batch
-        if self.log_first:
+        if self.log_first_metrics:
             for metric in self.metrics:
                 # SISDR returns negative values, so negate them
                 if metric == "SISDR":
@@ -118,7 +130,7 @@ class RemFXModel(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-            self.log_first = False
+            self.log_first_metrics = False
 
         if self.log_next:
             self.model.eval()
