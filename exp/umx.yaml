@@ -21,4 +21,4 @@ datamodule:
           _target_: remfx.effects.RandomPedalboardDistortion
           sample_rate: ${sample_rate}
           min_drive_db: -10
-          max_drive_db: 30
+          max_drive_db: 50

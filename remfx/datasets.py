@@ -6,9 +6,30 @@ import torch.nn.functional as F
 from pathlib import Path
 import pytorch_lightning as pl
 from typing import Any, List, Tuple
+from remfx import effects
+from pedalboard import (
+    Pedalboard,
+    Chorus,
+    Reverb,
+    Compressor,
+    Phaser,
+    Delay,
+    Distortion,
+    Limiter,
+)
 
 # https://zenodo.org/record/7044411/ -> GuitarFX
 # https://zenodo.org/record/3371780  -> GuitarSet
+
+deterministic_effects = {
+    "Distortion": Pedalboard([Distortion()]),
+    "Compressor": Pedalboard([Compressor()]),
+    "Chorus": Pedalboard([Chorus()]),
+    "Phaser": Pedalboard([Phaser()]),
+    "Delay": Pedalboard([Delay()]),
+    "Reverb": Pedalboard([Reverb()]),
+    "Limiter": Pedalboard([Limiter()]),
+}
 
 
 class GuitarFXDataset(Dataset):
@@ -111,6 +132,8 @@ class GuitarSet(Dataset):
         print(f"Found {len(self.files)} files .\n" f"Total chunks: {len(self.chunks)}")
         self.resampler = T.Resample(orig_sr, sample_rate)
         self.effect_types = effect_types
+        self.normalize = effects.LoudnessNormalize(sample_rate, target_lufs_db=-20)
+        self.mode = "train"
 
     def __len__(self):
         return len(self.chunks)
@@ -130,14 +153,24 @@ class GuitarSet(Dataset):
             resampled_x = F.pad(
                 resampled_x, (0, chunk_size_in_samples - resampled_x.shape[1])
             )
-        target = resampled_x
 
-        # Add random effect
-        random_effect_idx = torch.rand(1).item() * len(self.effect_types.keys())
-        effect_name = list(self.effect_types.keys())[int(random_effect_idx)]
-        effect = self.effect_types[effect_name]
-        effected_input = effect(resampled_x)
-        return (effected_input, target, effect_name)
+        # Add random effect if train
+        if self.mode == "train":
+            random_effect_idx = torch.rand(1).item() * len(self.effect_types.keys())
+            effect_name = list(self.effect_types.keys())[int(random_effect_idx)]
+            effect = self.effect_types[effect_name]
+            effected_input = effect(resampled_x)
+        else:
+            # deterministic static effect for eval
+            effect_idx = idx % len(self.effect_types.keys())
+            effect_name = list(self.effect_types.keys())[effect_idx]
+            effect = deterministic_effects[effect_name]
+            effected_input = torch.from_numpy(
+                effect(resampled_x.numpy(), self.sample_rate)
+            )
+        normalized_input = self.normalize(effected_input)
+        normalized_target = self.normalize(resampled_x)
+        return (normalized_input, normalized_target, effect_name)
 
 
 def create_random_chunks(
@@ -197,6 +230,7 @@ class Datamodule(pl.LightningDataModule):
         self.data_train, self.data_val = random_split(
             self.dataset, [train_size, val_size]
         )
+        self.data_val.dataset.mode = "val"
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
