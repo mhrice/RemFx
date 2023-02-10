@@ -88,7 +88,21 @@ class RemFXModel(pl.LightningModule):
 
     def on_train_batch_start(self, batch, batch_idx):
         if self.log_first:
-            x, target, label = batch
+            x, y, label = batch
+            log_wandb_audio_batch(
+                logger=self.logger,
+                id="input_target",
+                samples=x.cpu(),
+                sampling_rate=self.sample_rate,
+                caption="Training Data",
+            )
+
+    def on_validation_epoch_start(self):
+        self.log_next = True
+
+    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
+        x, target, label = batch
+        if self.log_first:
             for metric in self.metrics:
                 # SISDR returns negative values, so negate them
                 if metric == "SISDR":
@@ -106,12 +120,7 @@ class RemFXModel(pl.LightningModule):
                 )
             self.log_first = False
 
-    def on_validation_epoch_start(self):
-        self.log_next = True
-
-    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
         if self.log_next:
-            x, target, label = batch
             self.model.eval()
             with torch.no_grad():
                 y = self.model.sample(x)
