@@ -90,8 +90,9 @@ class RemFXModel(pl.LightningModule):
     def on_train_batch_start(self, batch, batch_idx):
         if self.log_train_audio:
             x, y, label = batch
-            input_samples = rearrange(x, "b c t -> c (b t)")
-            target_samples = rearrange(y, "b c t -> c (b t)")
+            # Concat samples together for easier viewing in dashboard
+            input_samples = rearrange(x, "b c t -> c (b t)").unqueeze(0)
+            target_samples = rearrange(y, "b c t -> c (b t)").unqueeze(0)
 
             log_wandb_audio_batch(
                 logger=self.logger,
