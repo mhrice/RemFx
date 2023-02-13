@@ -114,8 +114,9 @@ class RemFXModel(pl.LightningModule):
         self.log_next = True
 
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-        x, target, label = batch
-        if self.log_first_metrics:
+        if self.log_next:
+            x, target, label = batch
+            # Log Input Metrics
             for metric in self.metrics:
                 # SISDR returns negative values, so negate them
                 if metric == "SISDR":
@@ -131,9 +132,7 @@ class RemFXModel(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-            self.log_first_metrics = False
 
-        if self.log_next:
             self.model.eval()
             with torch.no_grad():
                 y = self.model.sample(x)
