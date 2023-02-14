@@ -200,14 +200,14 @@ class VocalSet(Dataset):
         self.effect_types = effect_types
 
         self.output_root = Path(output_root)
-        output_mode_path = output_root / self.mode
+        output_mode_path = self.output_root / self.mode
 
         self.num_chunks = 0
         print("Total files:", len(self.files))
         print("Processing files...")
         if render_files:
-            if not output_root.exists():
-                output_root.mkdir()
+            if not self.output_root.exists():
+                self.output_root.mkdir()
             if not output_mode_path.exists():
                 output_mode_path.mkdir()
             for i, audio_file in tqdm(enumerate(self.files)):
