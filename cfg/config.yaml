@@ -1,6 +1,8 @@
 defaults:
   - _self_
-  - exp: null
+  - model: null
+  - effects: null
+
 seed: 12345
 train: True
 sample_rate: 48000
@@ -26,12 +28,14 @@ datamodule:
     root: ${oc.env:DATASET_ROOT}
     chunk_size_in_sec: 6
     mode: "train"
+    effect_types: ${effects.train_effects}
   val_dataset:
     _target_: remfx.datasets.VocalSet
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
     chunk_size_in_sec: 6
     mode: "val"
+    effect_types: ${effects.val_effects}
   batch_size: 16
   num_workers: 8
   pin_memory: True

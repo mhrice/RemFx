@@ -7,12 +7,12 @@ from pytorch_lightning.utilities.model_summary import ModelSummary
 log = utils.get_logger(__name__)
 
 
-@hydra.main(version_base=None, config_path="../", config_name="config.yaml")
+@hydra.main(version_base=None, config_path="../cfg", config_name="config.yaml")
 def main(cfg: DictConfig):
     # Apply seed for reproducibility
     if cfg.seed:
         pl.seed_everything(cfg.seed)
-
+    print(cfg)
     log.info(f"Instantiating datamodule <{cfg.datamodule._target_}>.")
     datamodule = hydra.utils.instantiate(cfg.datamodule, _convert_="partial")
     log.info(f"Instantiating model <{cfg.model._target_}>.")

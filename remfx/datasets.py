@@ -190,6 +190,9 @@ class VocalSet(Dataset):
         self.chunk_size_in_sec = chunk_size_in_sec
         self.sample_rate = sample_rate
         self.mode = mode
+        import pdb
+
+        pdb.set_trace()
 
         mode_path = self.root / self.mode
         self.files = sorted(list(mode_path.glob("./**/*.wav")))
@@ -225,18 +228,14 @@ class VocalSet(Dataset):
 
         # Add random effect if train
         if self.mode == "train":
-            random_effect_idx = torch.rand(1).item() * len(self.effect_types.keys())
-            effect_name = list(self.effect_types.keys())[int(random_effect_idx)]
-            effect = self.effect_types[effect_name]
-            effected_input = effect(resampled_x)
+            effect_idx = torch.rand(1).item() * len(self.effect_types.keys())
         else:
-            # deterministic static effect for eval
+            # deterministic effect for eval
             effect_idx = idx % len(self.effect_types.keys())
-            effect_name = list(self.effect_types.keys())[effect_idx]
-            effect = deterministic_effects[effect_name]
-            effected_input = torch.from_numpy(
-                effect(resampled_x.numpy(), self.sample_rate)
-            )
+        effect_name = list(self.effect_types.keys())[int(effect_idx)]
+        effect = self.effect_types[effect_name]
+        effected_input = effect(resampled_x)
+
         normalized_input = self.normalize(effected_input)
         normalized_target = self.normalize(resampled_x)
         return (normalized_input, normalized_target, effect_name)
