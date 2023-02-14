@@ -12,7 +12,6 @@ def main(cfg: DictConfig):
     # Apply seed for reproducibility
     if cfg.seed:
         pl.seed_everything(cfg.seed)
-    print(cfg)
     log.info(f"Instantiating datamodule <{cfg.datamodule._target_}>.")
     datamodule = hydra.utils.instantiate(cfg.datamodule, _convert_="partial")
     log.info(f"Instantiating model <{cfg.model._target_}>.")

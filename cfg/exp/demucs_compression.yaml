@@ -1,0 +1,4 @@
+# @package _global_
+defaults:
+  - override /model: demucs
+  - override /effects: compression

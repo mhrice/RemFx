@@ -574,7 +574,7 @@ class RandomSoxReverb(torch.nn.Module):
         return (x * (1 - wet_dry)) + (y * wet_dry)
 
 
-class RandomPebalboardReverb(torch.nn.Module):
+class RandomPedalboardReverb(torch.nn.Module):
     def __init__(
         self,
         sample_rate: float,
