@@ -17,6 +17,7 @@ from pedalboard import (
     Distortion,
     Limiter,
 )
+from tqdm import tqdm
 
 # https://zenodo.org/record/7044411/ -> GuitarFX
 # https://zenodo.org/record/3371780  -> GuitarSet
@@ -181,6 +182,8 @@ class VocalSet(Dataset):
         sample_rate: int,
         chunk_size_in_sec: int = 3,
         effect_types: List[torch.nn.Module] = None,
+        render_files: bool = True,
+        output_root: str = "processed",
         mode: str = "train",
     ):
         super().__init__()
@@ -193,49 +196,68 @@ class VocalSet(Dataset):
 
         mode_path = self.root / self.mode
         self.files = sorted(list(mode_path.glob("./**/*.wav")))
-        for i, audio_file in enumerate(self.files):
-            chunk_starts, orig_sr = create_sequential_chunks(
-                audio_file, self.chunk_size_in_sec
-            )
-            self.chunks += chunk_starts
-            self.song_idx += [i] * len(chunk_starts)
-        print(f"Found {len(self.files)} files .\n" f"Total chunks: {len(self.chunks)}")
-        self.resampler = T.Resample(orig_sr, sample_rate)
-        self.effect_types = effect_types
         self.normalize = effects.LoudnessNormalize(sample_rate, target_lufs_db=-20)
+        self.effect_types = effect_types
+
+        self.output_root = Path(output_root)
+        output_mode_path = output_root / self.mode
+
+        self.num_chunks = 0
+        print("Total files:", len(self.files))
+        print("Processing files...")
+        if render_files:
+            if not output_root.exists():
+                output_root.mkdir()
+            if not output_mode_path.exists():
+                output_mode_path.mkdir()
+            for i, audio_file in tqdm(enumerate(self.files)):
+                chunks, orig_sr = create_sequential_chunks(
+                    audio_file, self.chunk_size_in_sec
+                )
+                for chunk in chunks:
+                    resampled_chunk = torchaudio.functional.resample(
+                        chunk, orig_sr, sample_rate
+                    )
+                    chunk_size_in_samples = self.chunk_size_in_sec * self.sample_rate
+                    if resampled_chunk.shape[-1] < chunk_size_in_samples:
+                        resampled_chunk = F.pad(
+                            resampled_chunk,
+                            (0, chunk_size_in_samples - resampled_chunk.shape[1]),
+                        )
+                    effect_idx = torch.rand(1).item() * len(self.effect_types.keys())
+                    effect_name = list(self.effect_types.keys())[int(effect_idx)]
+                    effect = self.effect_types[effect_name]
+                    effected_input = effect(resampled_chunk)
+                    normalized_input = self.normalize(effected_input)
+                    normalized_target = self.normalize(resampled_chunk)
+
+                    output_dir = output_mode_path / str(self.num_chunks)
+                    output_dir.mkdir(exist_ok=True)
+                    torchaudio.save(
+                        output_dir / "input.wav", normalized_input, self.sample_rate
+                    )
+                    torchaudio.save(
+                        output_dir / "target.wav", normalized_target, self.sample_rate
+                    )
+                    self.num_chunks += 1
+        else:
+            self.num_chunks = len(list(output_mode_path.glob("./**/*.wav")))
+
+        print(
+            f"Found {len(self.files)} {self.mode} files .\n"
+            f"Total chunks: {self.num_chunks}"
+        )
 
     def __len__(self):
-        return len(self.chunks)
+        return self.num_chunks
 
     def __getitem__(self, idx):
-        # Load and effect audio
-        song_idx = self.song_idx[idx]
-        x, sr = torchaudio.load(self.files[song_idx])
-        chunk_start = self.chunks[idx]
-        chunk_size_in_samples = self.chunk_size_in_sec * sr
-        x = x[:, chunk_start : chunk_start + chunk_size_in_samples]
-        resampled_x = self.resampler(x)
-        # Reset chunk size to be new sample rate
-        chunk_size_in_samples = self.chunk_size_in_sec * self.sample_rate
-        # Pad to chunk_size if needed
-        if resampled_x.shape[-1] < chunk_size_in_samples:
-            resampled_x = F.pad(
-                resampled_x, (0, chunk_size_in_samples - resampled_x.shape[1])
-            )
-
-        # Add random effect if train
-        if self.mode == "train":
-            effect_idx = torch.rand(1).item() * len(self.effect_types.keys())
-        else:
-            # deterministic effect for eval
-            effect_idx = idx % len(self.effect_types.keys())
-        effect_name = list(self.effect_types.keys())[int(effect_idx)]
-        effect = self.effect_types[effect_name]
-        effected_input = effect(resampled_x)
-
-        normalized_input = self.normalize(effected_input)
-        normalized_target = self.normalize(resampled_x)
-        return (normalized_input, normalized_target, effect_name)
+        # Load audio
+        input_file = self.root / "processed" / self.mode / str(idx) / "input.wav"
+        target_file = self.root / "processed" / self.mode / str(idx) / "target.wav"
+        input, sr = torchaudio.load(input_file)
+        target, sr = torchaudio.load(target_file)
+        return (input, target, "")
 
 
 def create_random_chunks(
@@ -262,10 +284,15 @@ def create_sequential_chunks(
     """Create sequential chunks of size chunk_size (seconds) from an audio file.
     Return sample_index of start of each chunk and original sr
     """
+    chunks = []
     audio, sr = torchaudio.load(audio_file)
     chunk_size_in_samples = chunk_size * sr
     chunk_starts = torch.arange(0, audio.shape[-1], chunk_size_in_samples)
-    return chunk_starts, sr
+    for start in chunk_starts:
+        if start + chunk_size_in_samples > audio.shape[-1]:
+            break
+        chunks.append(audio[:, start : start + chunk_size_in_samples])
+    return chunks, sr
 
 
 class Datamodule(pl.LightningDataModule):

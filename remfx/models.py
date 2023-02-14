@@ -20,6 +20,7 @@ class FADLoss(torch.nn.Module):
         self.fad = FrechetAudioDistance(
             use_pca=False, use_activation=False, verbose=False
         )
+        self.fad.model = self.fad.model.to("cpu")
         self.sr = sample_rate
 
     def forward(self, audio_background, audio_eval):

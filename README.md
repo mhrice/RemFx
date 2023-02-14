@@ -33,3 +33,6 @@ Ex. `python scripts/train.py +exp=umx_distortion trainer.accelerator='gpu' train
 - `compressor`
 - `distortion`
 - `reverb`
+
+## Misc.
+To skip rendering files, add `+datamodule.train_dataset.render_files=False +datamodule.val_dataset.render_files=False` to the command-line

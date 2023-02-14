@@ -26,6 +26,7 @@ datamodule:
     _target_: remfx.datasets.VocalSet
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
+    output_root: ${oc.env:OUTPUT_ROOT}
     chunk_size_in_sec: 6
     mode: "train"
     effect_types: ${effects.train_effects}
@@ -33,6 +34,7 @@ datamodule:
     _target_: remfx.datasets.VocalSet
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
+    output_root: ${oc.env:OUTPUT_ROOT}
     chunk_size_in_sec: 6
     mode: "val"
     effect_types: ${effects.val_effects}
