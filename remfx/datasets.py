@@ -190,9 +190,6 @@ class VocalSet(Dataset):
         self.chunk_size_in_sec = chunk_size_in_sec
         self.sample_rate = sample_rate
         self.mode = mode
-        import pdb
-
-        pdb.set_trace()
 
         mode_path = self.root / self.mode
         self.files = sorted(list(mode_path.glob("./**/*.wav")))

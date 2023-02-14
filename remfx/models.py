@@ -26,10 +26,10 @@ class FADLoss(torch.nn.Module):
         embds_background = []
         embds_eval = []
         for sample in audio_background:
-            embd = self.fad.model.forward(sample.T.detach().numpy(), self.sr)
+            embd = self.fad.model.forward(sample.T.cpu().detach().numpy(), self.sr)
             embds_background.append(embd.cpu().detach().numpy())
         for sample in audio_eval:
-            embd = self.fad.model.forward(sample.T.detach().numpy(), self.sr)
+            embd = self.fad.model.forward(sample.T.cpu().detach().numpy(), self.sr)
             embds_eval.append(embd.cpu().detach().numpy())
         embds_background = np.concatenate(embds_background, axis=0)
         embds_eval = np.concatenate(embds_eval, axis=0)
