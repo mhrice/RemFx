@@ -207,7 +207,7 @@ class VocalSet(Dataset):
         print("Processing files...")
         if render_files:
             if not self.output_root.exists():
-                self.output_root.mkdir()
+                self.output_root.mkdir(parents=True)
             if not output_mode_path.exists():
                 output_mode_path.mkdir()
             for i, audio_file in tqdm(enumerate(self.files)):
@@ -253,8 +253,8 @@ class VocalSet(Dataset):
 
     def __getitem__(self, idx):
         # Load audio
-        input_file = self.root / "processed" / self.mode / str(idx) / "input.wav"
-        target_file = self.root / "processed" / self.mode / str(idx) / "target.wav"
+        input_file = self.output_root / str(idx) / "input.wav"
+        target_file = self.output_root / str(idx) / "target.wav"
         input, sr = torchaudio.load(input_file)
         target, sr = torchaudio.load(target_file)
         return (input, target, "")
