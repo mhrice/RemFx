@@ -39,7 +39,8 @@ class RemFXModel(pl.LightningModule):
             }
         )
         # Log first batch metrics input vs output only once
-        self.log_first = True
+        self.log_first_metrics = True
+        self.log_train_audio = True
 
     @property
     def device(self):
@@ -87,8 +88,35 @@ class RemFXModel(pl.LightningModule):
         return loss
 
     def on_train_batch_start(self, batch, batch_idx):
-        if self.log_first:
+        if self.log_train_audio:
+            x, y, label = batch
+            # Concat samples together for easier viewing in dashboard
+            input_samples = rearrange(x, "b c t -> c (b t)").unsqueeze(0)
+            target_samples = rearrange(y, "b c t -> c (b t)").unsqueeze(0)
+
+            log_wandb_audio_batch(
+                logger=self.logger,
+                id="input_effected_audio",
+                samples=input_samples.cpu(),
+                sampling_rate=self.sample_rate,
+                caption="Training Data",
+            )
+            log_wandb_audio_batch(
+                logger=self.logger,
+                id="target_audio",
+                samples=target_samples.cpu(),
+                sampling_rate=self.sample_rate,
+                caption="Target Data",
+            )
+            self.log_train_audio = False
+
+    def on_validation_epoch_start(self):
+        self.log_next = True
+
+    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
+        if self.log_next:
             x, target, label = batch
+            # Log Input Metrics
             for metric in self.metrics:
                 # SISDR returns negative values, so negate them
                 if metric == "SISDR":
@@ -104,20 +132,17 @@ class RemFXModel(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-            self.log_first = False
 
-    def on_validation_epoch_start(self):
-        self.log_next = True
-
-    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-        if self.log_next:
-            x, target, label = batch
             self.model.eval()
             with torch.no_grad():
                 y = self.model.sample(x)
 
             # Concat samples together for easier viewing in dashboard
-            concat_samples = torch.cat([y, x, target], dim=-1)
+            # 2 seconds of silence between each sample
+            silence = torch.zeros_like(x)
+            silence = silence[:, : self.sample_rate * 2]
+
+            concat_samples = torch.cat([y, silence, x, silence, target], dim=-1)
             log_wandb_audio_batch(
                 logger=self.logger,
                 id="prediction_input_target",
