@@ -19,19 +19,13 @@ callbacks:
     filename: '{epoch:02d}-{valid_loss:.3f}'
 
 datamodule:
-  _target_: remfx.datasets.VocalSetDatamodule
-  train_dataset:
-    _target_: remfx.datasets.VocalSet
+  _target_: remfx.datasets.Datamodule
+  dataset:
+    _target_: remfx.datasets.GuitarSet
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
     chunk_size_in_sec: 6
-    mode: "train"
-  val_dataset:
-    _target_: remfx.datasets.VocalSet
-    sample_rate: ${sample_rate}
-    root: ${oc.env:DATASET_ROOT}
-    chunk_size_in_sec: 6
-    mode: "val"
+  val_split: 0.2
   batch_size: 16
   num_workers: 8
   pin_memory: True

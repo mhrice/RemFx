@@ -20,6 +20,7 @@ from pedalboard import (
 
 # https://zenodo.org/record/7044411/ -> GuitarFX
 # https://zenodo.org/record/3371780  -> GuitarSet
+# https://zenodo.org/record/1193957 -> VocalSet
 
 deterministic_effects = {
     "Distortion": Pedalboard([Distortion()]),
@@ -173,6 +174,74 @@ class GuitarSet(Dataset):
         return (normalized_input, normalized_target, effect_name)
 
 
+class VocalSet(Dataset):
+    def __init__(
+        self,
+        root: str,
+        sample_rate: int,
+        chunk_size_in_sec: int = 3,
+        effect_types: List[torch.nn.Module] = None,
+        mode: str = "train",
+    ):
+        super().__init__()
+        self.chunks = []
+        self.song_idx = []
+        self.root = Path(root)
+        self.chunk_size_in_sec = chunk_size_in_sec
+        self.sample_rate = sample_rate
+        self.mode = mode
+
+        mode_path = self.root / self.mode
+        self.files = sorted(list(mode_path.glob("./**/*.wav")))
+        for i, audio_file in enumerate(self.files):
+            chunk_starts, orig_sr = create_sequential_chunks(
+                audio_file, self.chunk_size_in_sec
+            )
+            self.chunks += chunk_starts
+            self.song_idx += [i] * len(chunk_starts)
+        print(f"Found {len(self.files)} files .\n" f"Total chunks: {len(self.chunks)}")
+        self.resampler = T.Resample(orig_sr, sample_rate)
+        self.effect_types = effect_types
+        self.normalize = effects.LoudnessNormalize(sample_rate, target_lufs_db=-20)
+
+    def __len__(self):
+        return len(self.chunks)
+
+    def __getitem__(self, idx):
+        # Load and effect audio
+        song_idx = self.song_idx[idx]
+        x, sr = torchaudio.load(self.files[song_idx])
+        chunk_start = self.chunks[idx]
+        chunk_size_in_samples = self.chunk_size_in_sec * sr
+        x = x[:, chunk_start : chunk_start + chunk_size_in_samples]
+        resampled_x = self.resampler(x)
+        # Reset chunk size to be new sample rate
+        chunk_size_in_samples = self.chunk_size_in_sec * self.sample_rate
+        # Pad to chunk_size if needed
+        if resampled_x.shape[-1] < chunk_size_in_samples:
+            resampled_x = F.pad(
+                resampled_x, (0, chunk_size_in_samples - resampled_x.shape[1])
+            )
+
+        # Add random effect if train
+        if self.mode == "train":
+            random_effect_idx = torch.rand(1).item() * len(self.effect_types.keys())
+            effect_name = list(self.effect_types.keys())[int(random_effect_idx)]
+            effect = self.effect_types[effect_name]
+            effected_input = effect(resampled_x)
+        else:
+            # deterministic static effect for eval
+            effect_idx = idx % len(self.effect_types.keys())
+            effect_name = list(self.effect_types.keys())[effect_idx]
+            effect = deterministic_effects[effect_name]
+            effected_input = torch.from_numpy(
+                effect(resampled_x.numpy(), self.sample_rate)
+            )
+        normalized_input = self.normalize(effected_input)
+        normalized_target = self.normalize(resampled_x)
+        return (normalized_input, normalized_target, effect_name)
+
+
 def create_random_chunks(
     audio_file: str, chunk_size: int, num_chunks: int
 ) -> Tuple[List[Tuple[int, int]], int]:
@@ -244,6 +313,46 @@ class Datamodule(pl.LightningDataModule):
     def val_dataloader(self) -> DataLoader:
         return DataLoader(
             dataset=self.data_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+        )
+
+
+class VocalSetDatamodule(pl.LightningDataModule):
+    def __init__(
+        self,
+        train_dataset,
+        val_dataset,
+        *,
+        batch_size: int,
+        num_workers: int,
+        pin_memory: bool = False,
+        **kwargs: int,
+    ) -> None:
+        super().__init__()
+        self.train_dataset = train_dataset
+        self.val_dataset = val_dataset
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.pin_memory = pin_memory
+
+    def setup(self, stage: Any = None) -> None:
+        pass
+
+    def train_dataloader(self) -> DataLoader:
+        return DataLoader(
+            dataset=self.train_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=True,
+        )
+
+    def val_dataloader(self) -> DataLoader:
+        return DataLoader(
+            dataset=self.val_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
