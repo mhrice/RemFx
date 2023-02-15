@@ -200,16 +200,12 @@ class VocalSet(Dataset):
         self.effect_types = effect_types
 
         self.output_root = Path(output_root)
-        output_mode_path = self.output_root / self.mode
 
         self.num_chunks = 0
         print("Total files:", len(self.files))
         print("Processing files...")
         if render_files:
-            if not self.output_root.exists():
-                self.output_root.mkdir(parents=True)
-            if not output_mode_path.exists():
-                output_mode_path.mkdir()
+            self.output_root.mkdir(parents=True, exist_ok=True)
             for i, audio_file in tqdm(enumerate(self.files)):
                 chunks, orig_sr = create_sequential_chunks(
                     audio_file, self.chunk_size_in_sec
@@ -231,7 +227,7 @@ class VocalSet(Dataset):
                     normalized_input = self.normalize(effected_input)
                     normalized_target = self.normalize(resampled_chunk)
 
-                    output_dir = output_mode_path / str(self.num_chunks)
+                    output_dir = self.output_root / str(self.num_chunks)
                     output_dir.mkdir(exist_ok=True)
                     torchaudio.save(
                         output_dir / "input.wav", normalized_input, self.sample_rate
@@ -241,7 +237,7 @@ class VocalSet(Dataset):
                     )
                     self.num_chunks += 1
         else:
-            self.num_chunks = len(list(output_mode_path.glob("./**/*.wav")))
+            self.num_chunks = len(list(self.output_root.glob("./**/*.wav")))
 
         print(
             f"Found {len(self.files)} {self.mode} files .\n"
