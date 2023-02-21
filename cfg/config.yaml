@@ -9,7 +9,7 @@ sample_rate: 48000
 logs_dir: "./logs"
 log_every_n_steps: 1000
 render_files: True
-render_root: ${oc.env:DATASET_ROOT}
+render_root: "./data/processed"
 
 callbacks:
   model_checkpoint:

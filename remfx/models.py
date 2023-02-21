@@ -39,7 +39,6 @@ class RemFXModel(pl.LightningModule):
             }
         )
         # Log first batch metrics input vs output only once
-        self.log_first_metrics = True
         self.log_train_audio = True
 
     @property
@@ -73,21 +72,22 @@ class RemFXModel(pl.LightningModule):
         self.log(f"{mode}_loss", loss)
         x, y, label = batch
         # Metric logging
-        for metric in self.metrics:
-            # SISDR returns negative values, so negate them
-            if metric == "SISDR":
-                negate = -1
-            else:
-                negate = 1
-            self.log(
-                f"{mode}_{metric}",
-                negate * self.metrics[metric](output, y),
-                on_step=False,
-                on_epoch=True,
-                logger=True,
-                prog_bar=True,
-                sync_dist=True,
-            )
+        with torch.no_grad():
+            for metric in self.metrics:
+                # SISDR returns negative values, so negate them
+                if metric == "SISDR":
+                    negate = -1
+                else:
+                    negate = 1
+                self.log(
+                    f"{mode}_{metric}",
+                    negate * self.metrics[metric](output, y),
+                    on_step=False,
+                    on_epoch=True,
+                    logger=True,
+                    prog_bar=True,
+                    sync_dist=True,
+                )
 
         return loss
 
