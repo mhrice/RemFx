@@ -7,42 +7,10 @@ from audio_diffusion_pytorch import DiffusionModel
 from auraloss.time import SISDRLoss
 from auraloss.freq import MultiResolutionSTFTLoss, STFTLoss
 from torch.nn import L1Loss
-from frechet_audio_distance import FrechetAudioDistance
-import numpy as np
+from remfx.utils import FADLoss
 
 from umx.openunmix.model import OpenUnmix, Separator
 from torchaudio.models import HDemucs
-
-
-class FADLoss(torch.nn.Module):
-    def __init__(self, sample_rate: float):
-        super().__init__()
-        self.fad = FrechetAudioDistance(
-            use_pca=False, use_activation=False, verbose=False
-        )
-        self.fad.model = self.fad.model.to("cpu")
-        self.sr = sample_rate
-
-    def forward(self, audio_background, audio_eval):
-        embds_background = []
-        embds_eval = []
-        for sample in audio_background:
-            embd = self.fad.model.forward(sample.T.cpu().detach().numpy(), self.sr)
-            embds_background.append(embd.cpu().detach().numpy())
-        for sample in audio_eval:
-            embd = self.fad.model.forward(sample.T.cpu().detach().numpy(), self.sr)
-            embds_eval.append(embd.cpu().detach().numpy())
-        embds_background = np.concatenate(embds_background, axis=0)
-        embds_eval = np.concatenate(embds_eval, axis=0)
-        mu_background, sigma_background = self.fad.calculate_embd_statistics(
-            embds_background
-        )
-        mu_eval, sigma_eval = self.fad.calculate_embd_statistics(embds_eval)
-
-        fad_score = self.fad.calculate_frechet_distance(
-            mu_background, sigma_background, mu_eval, sigma_eval
-        )
-        return fad_score
 
 
 class RemFXModel(pl.LightningModule):
@@ -97,6 +65,10 @@ class RemFXModel(pl.LightningModule):
         loss = self.common_step(batch, batch_idx, mode="valid")
         return loss
 
+    def test_step(self, batch, batch_idx):
+        loss = self.common_step(batch, batch_idx, mode="test")
+        return loss
+
     def common_step(self, batch, batch_idx, mode: str = "train"):
         loss, output = self.model(batch)
         self.log(f"{mode}_loss", loss)
@@ -121,6 +93,7 @@ class RemFXModel(pl.LightningModule):
         return loss
 
     def on_train_batch_start(self, batch, batch_idx):
+        # Log initial audio
         if self.log_train_audio:
             x, y, label = batch
             # Concat samples together for easier viewing in dashboard
@@ -143,48 +116,47 @@ class RemFXModel(pl.LightningModule):
             )
             self.log_train_audio = False
 
-    def on_validation_epoch_start(self):
-        self.log_next = True
-
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-        if self.log_next:
-            x, target, label = batch
-            # Log Input Metrics
-            for metric in self.metrics:
-                # SISDR returns negative values, so negate them
-                if metric == "SISDR":
-                    negate = -1
-                else:
-                    negate = 1
-                self.log(
-                    f"Input_{metric}",
-                    negate * self.metrics[metric](x, target),
-                    on_step=False,
-                    on_epoch=True,
-                    logger=True,
-                    prog_bar=True,
-                    sync_dist=True,
-                )
-
-            self.model.eval()
-            with torch.no_grad():
-                y = self.model.sample(x)
-
-            # Concat samples together for easier viewing in dashboard
-            # 2 seconds of silence between each sample
-            silence = torch.zeros_like(x)
-            silence = silence[:, : self.sample_rate * 2]
-
-            concat_samples = torch.cat([y, silence, x, silence, target], dim=-1)
-            log_wandb_audio_batch(
-                logger=self.logger,
-                id="prediction_input_target",
-                samples=concat_samples.cpu(),
-                sampling_rate=self.sample_rate,
-                caption=f"Epoch {self.current_epoch}",
+        x, target, label = batch
+        # Log Input Metrics
+        for metric in self.metrics:
+            # SISDR returns negative values, so negate them
+            if metric == "SISDR":
+                negate = -1
+            else:
+                negate = 1
+            self.log(
+                f"Input_{metric}",
+                negate * self.metrics[metric](x, target),
+                on_step=False,
+                on_epoch=True,
+                logger=True,
+                prog_bar=True,
+                sync_dist=True,
             )
-            self.log_next = False
-            self.model.train()
+
+        self.model.eval()
+        with torch.no_grad():
+            y = self.model.sample(x)
+
+        # Concat samples together for easier viewing in dashboard
+        # 2 seconds of silence between each sample
+        silence = torch.zeros_like(x)
+        silence = silence[:, : self.sample_rate * 2]
+
+        concat_samples = torch.cat([y, silence, x, silence, target], dim=-1)
+        log_wandb_audio_batch(
+            logger=self.logger,
+            id="prediction_input_target",
+            samples=concat_samples.cpu(),
+            sampling_rate=self.sample_rate,
+            caption=f"Epoch {self.current_epoch}",
+        )
+        self.log_next = False
+        self.model.train()
+
+    def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
+        return self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
 
 
 class OpenUnmixModel(torch.nn.Module):

@@ -13,7 +13,7 @@
 4. Manually split singers into train, val, test directories
 
 ## Train model
-1. Change Wandb variables in `shell_vars.sh` and `source shell_vars.sh`
+1. Change Wandb and data root variables in `shell_vars.sh` and `source shell_vars.sh`
 2. `python scripts/train.py +exp=umx_distortion`
 or
 2. `python scripts/train.py +exp=demucs_distortion`
@@ -33,6 +33,12 @@ Ex. `python scripts/train.py +exp=umx_distortion trainer.accelerator='gpu' train
 - `compressor`
 - `distortion`
 - `reverb`
+- `all` (choose random effect to apply to each file)
 
 ## Misc.
-To skip rendering files, add `+datamodule.train_dataset.render_files=False +datamodule.val_dataset.render_files=False` to the command-line
+By default, files are rendered to `input_dir / processed / train/val/test`.
+To skip rendering files (use previously rendered), add `render_files=False` to the command-line
+
+Test
+Experiment dictates data, ckpt dictates model
+`python scripts/test.py +exp=umx_distortion.yaml +ckpt_path=test_ckpts/umx_dist.ckpt`

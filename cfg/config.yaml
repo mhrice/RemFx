@@ -8,6 +8,7 @@ train: True
 sample_rate: 48000
 logs_dir: "./logs"
 log_every_n_steps: 1000
+render_files: True
 
 callbacks:
   model_checkpoint:
@@ -26,18 +27,27 @@ datamodule:
     _target_: remfx.datasets.VocalSet
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
-    output_root: ${oc.env:OUTPUT_ROOT}/train
     chunk_size_in_sec: 6
     mode: "train"
     effect_types: ${effects.train_effects}
+    render_files: ${render_files}
   val_dataset:
     _target_: remfx.datasets.VocalSet
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
-    output_root: ${oc.env:OUTPUT_ROOT}/val
     chunk_size_in_sec: 6
     mode: "val"
     effect_types: ${effects.val_effects}
+    render_files: ${render_files}
+  test_dataset:
+    _target_: remfx.datasets.VocalSet
+    sample_rate: ${sample_rate}
+    root: ${oc.env:DATASET_ROOT}
+    chunk_size_in_sec: 6
+    mode: "test"
+    effect_types: ${effects.val_effects}
+    render_files: ${render_files}
+
   batch_size: 16
   num_workers: 8
   pin_memory: True
