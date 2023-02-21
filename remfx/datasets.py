@@ -20,12 +20,14 @@ class VocalSet(Dataset):
         chunk_size_in_sec: int = 3,
         effect_types: List[torch.nn.Module] = None,
         render_files: bool = True,
+        rendered_root: str = None,
         mode: str = "train",
     ):
         super().__init__()
         self.chunks = []
         self.song_idx = []
         self.root = Path(root)
+        self.rendered_root = Path(rendered_root)
         self.chunk_size_in_sec = chunk_size_in_sec
         self.sample_rate = sample_rate
         self.mode = mode
@@ -35,7 +37,7 @@ class VocalSet(Dataset):
         self.normalize = effects.LoudnessNormalize(sample_rate, target_lufs_db=-20)
         self.effect_types = effect_types
 
-        self.processed_root = self.root / "processed" / self.mode
+        self.processed_root = self.rendered_root / "processed" / self.mode
 
         self.num_chunks = 0
         print("Total files:", len(self.files))
