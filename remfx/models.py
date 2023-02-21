@@ -5,8 +5,7 @@ from einops import rearrange
 import wandb
 from audio_diffusion_pytorch import DiffusionModel
 from auraloss.time import SISDRLoss
-from auraloss.freq import MultiResolutionSTFTLoss, STFTLoss
-from torch.nn import L1Loss
+from auraloss.freq import MultiResolutionSTFTLoss
 from remfx.utils import FADLoss
 
 from umx.openunmix.model import OpenUnmix, Separator
@@ -35,7 +34,7 @@ class RemFXModel(pl.LightningModule):
         self.metrics = torch.nn.ModuleDict(
             {
                 "SISDR": SISDRLoss(),
-                "STFT": STFTLoss(),
+                "STFT": MultiResolutionSTFTLoss(),
                 "FAD": FADLoss(sample_rate=sample_rate),
             }
         )
@@ -189,16 +188,17 @@ class OpenUnmixModel(torch.nn.Module):
             n_fft=self.n_fft,
             n_hop=self.hop_length,
         )
-        self.loss_fn = MultiResolutionSTFTLoss(
+        self.mrstftloss = MultiResolutionSTFTLoss(
             n_bins=self.num_bins, sample_rate=self.sample_rate
         )
+        self.l1loss = torch.nn.L1Loss()
 
     def forward(self, batch):
         x, target, label = batch
         X = spectrogram(x, self.window, self.n_fft, self.hop_length, self.alpha)
         Y = self.model(X)
         sep_out = self.separator(x).squeeze(1)
-        loss = self.loss_fn(sep_out, target)
+        loss = self.mrstftloss(sep_out, target) + self.l1loss(sep_out, target)
 
         return loss, sep_out
 
@@ -211,14 +211,15 @@ class DemucsModel(torch.nn.Module):
         super().__init__()
         self.model = HDemucs(**kwargs)
         self.num_bins = kwargs["nfft"] // 2 + 1
-        self.loss_fn = MultiResolutionSTFTLoss(
-            n_bins=self.num_bins, sample_rate=sample_rate
+        self.mrstftloss = MultiResolutionSTFTLoss(
+            n_bins=self.num_bins, sample_rate=self.sample_rate
         )
+        self.l1loss = torch.nn.L1Loss()
 
     def forward(self, batch):
         x, target, label = batch
         output = self.model(x).squeeze(1)
-        loss = self.loss_fn(output, target)
+        loss = self.mrstftloss(output, target) + self.l1loss(output, target)
         return loss, output
 
     def sample(self, x: Tensor) -> Tensor:
