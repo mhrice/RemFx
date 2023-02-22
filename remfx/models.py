@@ -79,6 +79,9 @@ class RemFXModel(pl.LightningModule):
                     negate = -1
                 else:
                     negate = 1
+                # Only Log FAD on test set
+                if metric == "FAD" and mode != "test":
+                    continue
                 self.log(
                     f"{mode}_{metric}",
                     negate * self.metrics[metric](output, y),

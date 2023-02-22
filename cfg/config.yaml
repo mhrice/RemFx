@@ -19,7 +19,7 @@ callbacks:
     save_last: True         # additionaly always save model from last epoch
     mode: "min"             # can be "max" or "min"
     verbose: False
-    dirpath: ${logs_dir}/ckpts/${now:%Y-%m-%d-%H-%M-%S}
+    dirpath: ${logs_dir}/ckpts/${now:%Y-%m-%d-%H-%M-%S}-${exp}
     filename: '{epoch:02d}-{valid_loss:.3f}'
 
 datamodule:

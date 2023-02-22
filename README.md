@@ -35,10 +35,11 @@ Ex. `python scripts/train.py +exp=umx_distortion trainer.accelerator='gpu' train
 - `reverb`
 - `all` (choose random effect to apply to each file)
 
-## Misc.
-By default, files are rendered to `input_dir / processed / train/val/test`.
-To skip rendering files (use previously rendered), add `render_files=False` to the command-line
-To change the rendered location, add `render_root={path/to/dir}` to the command-line
-Test
+### Testing
 Experiment dictates data, ckpt dictates model
 `python scripts/test.py +exp=umx_distortion.yaml +ckpt_path=test_ckpts/umx_dist.ckpt`
+
+## Misc.
+By default, files are rendered to `input_dir / processed / train/val/test`.
+To skip rendering files (use previously rendered), add `render_files=False` to the command-line (added to test by default).
+To change the rendered location, add `render_root={path/to/dir}` to the command-line (use this for train and test)
