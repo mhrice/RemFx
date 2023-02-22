@@ -161,7 +161,19 @@ class RemFXModel(pl.LightningModule):
             self.model.train()
 
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
-        return self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
+        self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
+        # Log FAD
+        x, target, label = batch
+        metric = self.metrics["FAD"]
+        self.log(
+            f"Input_{metric}",
+            self.metrics[metric](x, target),
+            on_step=False,
+            on_epoch=True,
+            logger=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
 
 
 class OpenUnmixModel(torch.nn.Module):
