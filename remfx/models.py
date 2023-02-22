@@ -133,26 +133,26 @@ class RemFXModel(pl.LightningModule):
                 prog_bar=True,
                 sync_dist=True,
             )
+        # Only run on first batch
+        if batch_idx == 0:
+            self.model.eval()
+            with torch.no_grad():
+                y = self.model.sample(x)
 
-        self.model.eval()
-        with torch.no_grad():
-            y = self.model.sample(x)
+            # Concat samples together for easier viewing in dashboard
+            # 2 seconds of silence between each sample
+            silence = torch.zeros_like(x)
+            silence = silence[:, : self.sample_rate * 2]
 
-        # Concat samples together for easier viewing in dashboard
-        # 2 seconds of silence between each sample
-        silence = torch.zeros_like(x)
-        silence = silence[:, : self.sample_rate * 2]
-
-        concat_samples = torch.cat([y, silence, x, silence, target], dim=-1)
-        log_wandb_audio_batch(
-            logger=self.logger,
-            id="prediction_input_target",
-            samples=concat_samples.cpu(),
-            sampling_rate=self.sample_rate,
-            caption=f"Epoch {self.current_epoch}",
-        )
-        self.log_next = False
-        self.model.train()
+            concat_samples = torch.cat([y, silence, x, silence, target], dim=-1)
+            log_wandb_audio_batch(
+                logger=self.logger,
+                id="prediction_input_target",
+                samples=concat_samples.cpu(),
+                sampling_rate=self.sample_rate,
+                caption=f"Epoch {self.current_epoch}",
+            )
+            self.model.train()
 
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
         return self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
