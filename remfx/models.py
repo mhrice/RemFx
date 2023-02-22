@@ -127,6 +127,9 @@ class RemFXModel(pl.LightningModule):
                 negate = -1
             else:
                 negate = 1
+            # Only Log FAD on test set
+            if metric == "FAD":
+                continue
             self.log(
                 f"Input_{metric}",
                 negate * self.metrics[metric](x, target),
@@ -215,7 +218,7 @@ class DemucsModel(torch.nn.Module):
         self.model = HDemucs(**kwargs)
         self.num_bins = kwargs["nfft"] // 2 + 1
         self.mrstftloss = MultiResolutionSTFTLoss(
-            n_bins=self.num_bins, sample_rate=self.sample_rate
+            n_bins=self.num_bins, sample_rate=sample_rate
         )
         self.l1loss = torch.nn.L1Loss()
 
