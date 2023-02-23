@@ -164,10 +164,9 @@ class RemFXModel(pl.LightningModule):
         self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
         # Log FAD
         x, target, label = batch
-        metric = self.metrics["FAD"]
         self.log(
-            f"Input_{metric}",
-            self.metrics[metric](x, target),
+            "Input_FAD",
+            self.metrics["FAD"](x, target),
             on_step=False,
             on_epoch=True,
             logger=True,
