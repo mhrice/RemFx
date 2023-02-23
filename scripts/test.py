@@ -3,6 +3,8 @@ import hydra
 from omegaconf import DictConfig
 import remfx.utils as utils
 from pytorch_lightning.utilities.model_summary import ModelSummary
+from remfx.models import RemFXModel
+import torch
 
 log = utils.get_logger(__name__)
 
@@ -12,10 +14,15 @@ def main(cfg: DictConfig):
     # Apply seed for reproducibility
     if cfg.seed:
         pl.seed_everything(cfg.seed)
+    cfg.render_files = False
     log.info(f"Instantiating datamodule <{cfg.datamodule._target_}>.")
     datamodule = hydra.utils.instantiate(cfg.datamodule, _convert_="partial")
     log.info(f"Instantiating model <{cfg.model._target_}>.")
     model = hydra.utils.instantiate(cfg.model, _convert_="partial")
+    state_dict = torch.load(cfg.ckpt_path, map_location=torch.device("cpu"))[
+        "state_dict"
+    ]
+    model.load_state_dict(state_dict)
 
     # Init all callbacks
     callbacks = []
@@ -41,7 +48,7 @@ def main(cfg: DictConfig):
     )
     summary = ModelSummary(model)
     print(summary)
-    trainer.fit(model=model, datamodule=datamodule)
+    trainer.test(model=model, datamodule=datamodule)
 
 
 if __name__ == "__main__":

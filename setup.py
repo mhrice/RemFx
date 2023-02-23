@@ -46,6 +46,7 @@ setup(
         "auraloss",
         "pyloudnorm",
         "pedalboard",
+        "frechet_audio_distance",
     ],
     include_package_data=True,
     license="Apache License 2.0",

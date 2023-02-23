@@ -5,8 +5,8 @@ from einops import rearrange
 import wandb
 from audio_diffusion_pytorch import DiffusionModel
 from auraloss.time import SISDRLoss
-from auraloss.freq import MultiResolutionSTFTLoss, STFTLoss
-from torch.nn import L1Loss
+from auraloss.freq import MultiResolutionSTFTLoss
+from remfx.utils import FADLoss
 
 from umx.openunmix.model import OpenUnmix, Separator
 from torchaudio.models import HDemucs
@@ -34,12 +34,11 @@ class RemFXModel(pl.LightningModule):
         self.metrics = torch.nn.ModuleDict(
             {
                 "SISDR": SISDRLoss(),
-                "STFT": STFTLoss(),
-                "L1": L1Loss(),
+                "STFT": MultiResolutionSTFTLoss(),
+                "FAD": FADLoss(sample_rate=sample_rate),
             }
         )
         # Log first batch metrics input vs output only once
-        self.log_first_metrics = True
         self.log_train_audio = True
 
     @property
@@ -64,30 +63,39 @@ class RemFXModel(pl.LightningModule):
         loss = self.common_step(batch, batch_idx, mode="valid")
         return loss
 
+    def test_step(self, batch, batch_idx):
+        loss = self.common_step(batch, batch_idx, mode="test")
+        return loss
+
     def common_step(self, batch, batch_idx, mode: str = "train"):
         loss, output = self.model(batch)
         self.log(f"{mode}_loss", loss)
         x, y, label = batch
         # Metric logging
-        for metric in self.metrics:
-            # SISDR returns negative values, so negate them
-            if metric == "SISDR":
-                negate = -1
-            else:
-                negate = 1
-            self.log(
-                f"{mode}_{metric}",
-                negate * self.metrics[metric](output, y),
-                on_step=False,
-                on_epoch=True,
-                logger=True,
-                prog_bar=True,
-                sync_dist=True,
-            )
+        with torch.no_grad():
+            for metric in self.metrics:
+                # SISDR returns negative values, so negate them
+                if metric == "SISDR":
+                    negate = -1
+                else:
+                    negate = 1
+                # Only Log FAD on test set
+                if metric == "FAD" and mode != "test":
+                    continue
+                self.log(
+                    f"{mode}_{metric}",
+                    negate * self.metrics[metric](output, y),
+                    on_step=False,
+                    on_epoch=True,
+                    logger=True,
+                    prog_bar=True,
+                    sync_dist=True,
+                )
 
         return loss
 
     def on_train_batch_start(self, batch, batch_idx):
+        # Log initial audio
         if self.log_train_audio:
             x, y, label = batch
             # Concat samples together for easier viewing in dashboard
@@ -110,29 +118,29 @@ class RemFXModel(pl.LightningModule):
             )
             self.log_train_audio = False
 
-    def on_validation_epoch_start(self):
-        self.log_next = True
-
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-        if self.log_next:
-            x, target, label = batch
-            # Log Input Metrics
-            for metric in self.metrics:
-                # SISDR returns negative values, so negate them
-                if metric == "SISDR":
-                    negate = -1
-                else:
-                    negate = 1
-                self.log(
-                    f"Input_{metric}",
-                    negate * self.metrics[metric](x, target),
-                    on_step=False,
-                    on_epoch=True,
-                    logger=True,
-                    prog_bar=True,
-                    sync_dist=True,
-                )
-
+        x, target, label = batch
+        # Log Input Metrics
+        for metric in self.metrics:
+            # SISDR returns negative values, so negate them
+            if metric == "SISDR":
+                negate = -1
+            else:
+                negate = 1
+            # Only Log FAD on test set
+            if metric == "FAD":
+                continue
+            self.log(
+                f"Input_{metric}",
+                negate * self.metrics[metric](x, target),
+                on_step=False,
+                on_epoch=True,
+                logger=True,
+                prog_bar=True,
+                sync_dist=True,
+            )
+        # Only run on first batch
+        if batch_idx == 0:
             self.model.eval()
             with torch.no_grad():
                 y = self.model.sample(x)
@@ -150,8 +158,21 @@ class RemFXModel(pl.LightningModule):
                 sampling_rate=self.sample_rate,
                 caption=f"Epoch {self.current_epoch}",
             )
-            self.log_next = False
             self.model.train()
+
+    def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
+        self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
+        # Log FAD
+        x, target, label = batch
+        self.log(
+            "Input_FAD",
+            self.metrics["FAD"](x, target),
+            on_step=False,
+            on_epoch=True,
+            logger=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
 
 
 class OpenUnmixModel(torch.nn.Module):
@@ -184,16 +205,17 @@ class OpenUnmixModel(torch.nn.Module):
             n_fft=self.n_fft,
             n_hop=self.hop_length,
         )
-        self.loss_fn = MultiResolutionSTFTLoss(
+        self.mrstftloss = MultiResolutionSTFTLoss(
             n_bins=self.num_bins, sample_rate=self.sample_rate
         )
+        self.l1loss = torch.nn.L1Loss()
 
     def forward(self, batch):
         x, target, label = batch
         X = spectrogram(x, self.window, self.n_fft, self.hop_length, self.alpha)
         Y = self.model(X)
         sep_out = self.separator(x).squeeze(1)
-        loss = self.loss_fn(sep_out, target)
+        loss = self.mrstftloss(sep_out, target) + self.l1loss(sep_out, target)
 
         return loss, sep_out
 
@@ -206,14 +228,15 @@ class DemucsModel(torch.nn.Module):
         super().__init__()
         self.model = HDemucs(**kwargs)
         self.num_bins = kwargs["nfft"] // 2 + 1
-        self.loss_fn = MultiResolutionSTFTLoss(
+        self.mrstftloss = MultiResolutionSTFTLoss(
             n_bins=self.num_bins, sample_rate=sample_rate
         )
+        self.l1loss = torch.nn.L1Loss()
 
     def forward(self, batch):
         x, target, label = batch
         output = self.model(x).squeeze(1)
-        loss = self.loss_fn(output, target)
+        loss = self.mrstftloss(output, target) + self.l1loss(output, target)
         return loss, output
 
     def sample(self, x: Tensor) -> Tensor:

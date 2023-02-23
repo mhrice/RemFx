@@ -1,0 +1,26 @@
+# @package _global_
+effects:
+  train_effects:
+      Reverb:
+        _target_: remfx.effects.RandomPedalboardReverb
+        sample_rate: ${sample_rate}
+        min_room_size: 0.3
+        max_room_size: 1.0
+        min_damping: 0.2
+        max_damping: 1.0
+        min_wet_dry: 0.2
+        max_wet_dry: 0.8
+        min_width: 0.2
+        max_width: 1.0
+  val_effects:
+      Reverb:
+        _target_: remfx.effects.RandomPedalboardReverb
+        sample_rate: ${sample_rate}
+        min_room_size: 0.5
+        max_room_size: 0.5
+        min_damping: 0.5
+        max_damping: 0.5
+        min_wet_dry: 0.4
+        max_wet_dry: 0.4
+        min_width: 0.5
+        max_width: 0.5

@@ -1,11 +1,15 @@
 defaults:
   - _self_
-  - exp: null
+  - model: null
+  - effects: null
+
 seed: 12345
 train: True
 sample_rate: 48000
 logs_dir: "./logs"
 log_every_n_steps: 1000
+render_files: True
+render_root: "./data/processed"
 
 callbacks:
   model_checkpoint:
@@ -19,13 +23,35 @@ callbacks:
     filename: '{epoch:02d}-{valid_loss:.3f}'
 
 datamodule:
-  _target_: remfx.datasets.Datamodule
-  dataset:
-    _target_: remfx.datasets.GuitarSet
+  _target_: remfx.datasets.VocalSetDatamodule
+  train_dataset:
+    _target_: remfx.datasets.VocalSet
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
     chunk_size_in_sec: 6
-  val_split: 0.2
+    mode: "train"
+    effect_types: ${effects.train_effects}
+    render_files: ${render_files}
+    render_root: ${render_root}
+  val_dataset:
+    _target_: remfx.datasets.VocalSet
+    sample_rate: ${sample_rate}
+    root: ${oc.env:DATASET_ROOT}
+    chunk_size_in_sec: 6
+    mode: "val"
+    effect_types: ${effects.val_effects}
+    render_files: ${render_files}
+    render_root: ${render_root}
+  test_dataset:
+    _target_: remfx.datasets.VocalSet
+    sample_rate: ${sample_rate}
+    root: ${oc.env:DATASET_ROOT}
+    chunk_size_in_sec: 6
+    mode: "test"
+    effect_types: ${effects.val_effects}
+    render_files: ${render_files}
+    render_root: ${render_root}
+
   batch_size: 16
   num_workers: 8
   pin_memory: True
