@@ -287,10 +287,13 @@ def log_wandb_audio_batch(
     samples: Tensor,
     sampling_rate: int,
     caption: str = "",
+    max_items: int = 10,
 ):
     num_items = samples.shape[0]
     samples = rearrange(samples, "b c t -> b t c")
     for idx in range(num_items):
+        if idx >= max_items:
+            break
         logger.experiment.log(
             {
                 f"{id}_{idx}": wandb.Audio(
