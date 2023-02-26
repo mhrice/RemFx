@@ -237,7 +237,7 @@ class OpenUnmixModel(torch.nn.Module):
         X = spectrogram(x, self.window, self.n_fft, self.hop_length, self.alpha)
         Y = self.model(X)
         sep_out = self.separator(x).squeeze(1)
-        loss = self.mrstftloss(sep_out, target) + self.l1loss(sep_out, target)
+        loss = self.mrstftloss(sep_out, target) + self.l1loss(sep_out, target) * 100
 
         return loss, sep_out
 
@@ -258,7 +258,7 @@ class DemucsModel(torch.nn.Module):
     def forward(self, batch):
         x, target, label = batch
         output = self.model(x).squeeze(1)
-        loss = self.mrstftloss(output, target) + self.l1loss(output, target)
+        loss = self.mrstftloss(output, target) + self.l1loss(output, target) * 100
         return loss, output
 
     def sample(self, x: Tensor) -> Tensor:
