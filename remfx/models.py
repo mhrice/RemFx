@@ -55,6 +55,28 @@ class RemFXModel(pl.LightningModule):
         )
         return optimizer
 
+    # Add step-based learning rate scheduler
+    def optimizer_step(
+        self,
+        epoch,
+        batch_idx,
+        optimizer,
+        optimizer_idx,
+        optimizer_closure,
+        on_tpu=False,
+        using_lbfgs=False,
+    ):
+        # update params
+        optimizer.step(closure=optimizer_closure)
+
+        # update learning rate. Reduce by factor of 10 at 80% and 95% of training
+        if self.trainer.global_step == 0.8 * self.trainer.max_steps:
+            for pg in optimizer.param_groups:
+                pg["lr"] = 0.1 * pg["lr"]
+        if self.trainer.global_step == 0.95 * self.trainer.max_steps:
+            for pg in optimizer.param_groups:
+                pg["lr"] = 0.1 * pg["lr"]
+
     def training_step(self, batch, batch_idx):
         loss = self.common_step(batch, batch_idx, mode="train")
         return loss

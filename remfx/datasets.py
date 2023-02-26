@@ -17,7 +17,7 @@ class VocalSet(Dataset):
         self,
         root: str,
         sample_rate: int,
-        chunk_size_in_sec: int = 3,
+        chunk_size: int = 3,
         effect_types: List[torch.nn.Module] = None,
         render_files: bool = True,
         render_root: str = None,
@@ -28,7 +28,7 @@ class VocalSet(Dataset):
         self.song_idx = []
         self.root = Path(root)
         self.render_root = Path(render_root)
-        self.chunk_size_in_sec = chunk_size_in_sec
+        self.chunk_size = chunk_size
         self.sample_rate = sample_rate
         self.mode = mode
 
@@ -46,15 +46,12 @@ class VocalSet(Dataset):
             # Split audio file into chunks, resample, then apply random effects
             self.processed_root.mkdir(parents=True, exist_ok=True)
             for audio_file in tqdm(self.files, total=len(self.files)):
-                chunks, orig_sr = create_sequential_chunks(
-                    audio_file, self.chunk_size_in_sec
-                )
+                chunks, orig_sr = create_sequential_chunks(audio_file, self.chunk_size)
                 for chunk in chunks:
                     resampled_chunk = torchaudio.functional.resample(
                         chunk, orig_sr, sample_rate
                     )
-                    chunk_size_in_samples = self.chunk_size_in_sec * self.sample_rate
-                    if resampled_chunk.shape[-1] < chunk_size_in_samples:
+                    if resampled_chunk.shape[-1] < chunk_size:
                         # Skip if chunk is too small
                         continue
                     # Apply effect
