@@ -55,10 +55,8 @@ class VocalSet(Dataset):
                     )
                     chunk_size_in_samples = self.chunk_size_in_sec * self.sample_rate
                     if resampled_chunk.shape[-1] < chunk_size_in_samples:
-                        resampled_chunk = F.pad(
-                            resampled_chunk,
-                            (0, chunk_size_in_samples - resampled_chunk.shape[1]),
-                        )
+                        # Skip if chunk is too small
+                        continue
                     # Apply effect
                     effect_idx = torch.rand(1).item() * len(self.effect_types.keys())
                     effect_name = list(self.effect_types.keys())[int(effect_idx)]
