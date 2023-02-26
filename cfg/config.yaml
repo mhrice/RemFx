@@ -77,6 +77,7 @@ trainer:
   enable_model_summary: False
   log_every_n_steps: 1 # Logs metrics every N batches
   accumulate_grad_batches: 1
+  deterministic: True
   accelerator: null
   devices: 1
   gradient_clip_val: 10.0

@@ -42,7 +42,7 @@ def main(cfg: DictConfig):
     summary = ModelSummary(model)
     print(summary)
     trainer.fit(model=model, datamodule=datamodule)
-    trainer.test(model=model, datamodule=datamodule)
+    trainer.test(model=model, datamodule=datamodule, ckpt_path="best")
 
 
 if __name__ == "__main__":

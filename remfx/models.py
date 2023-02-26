@@ -63,8 +63,9 @@ class RemFXModel(pl.LightningModule):
         optimizer,
         optimizer_idx,
         optimizer_closure,
-        on_tpu=False,
-        using_lbfgs=False,
+        on_tpu,
+        using_native_amp,
+        using_lbfgs,
     ):
         # update params
         optimizer.step(closure=optimizer_closure)
