@@ -1,15 +1,17 @@
 defaults:
   - _self_
   - model: null
-  - effects: null
+  - applied_effects: null
+  - effect_to_remove: null
 
+max_effects_per_file: 3
 seed: 12345
 train: True
 sample_rate: 48000
 chunk_size: 262144 # 5.5s
 logs_dir: "./logs"
 render_files: True
-render_root: "./data/processed"
+render_root: "./data"
 
 callbacks:
   model_checkpoint:
@@ -33,7 +35,9 @@ datamodule:
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}
     mode: "train"
-    effect_types: ${effects}
+    applied_effects: ${applied_effects}
+    effect_to_remove: ${effect_to_remove}
+    max_effects_per_file: ${max_effects_per_file}
     render_files: ${render_files}
     render_root: ${render_root}
   val_dataset:
@@ -42,7 +46,9 @@ datamodule:
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}
     mode: "val"
-    effect_types: ${effects}
+    applied_effects: ${applied_effects}
+    effect_to_remove: ${effect_to_remove}
+    max_effects_per_file: ${max_effects_per_file}
     render_files: ${render_files}
     render_root: ${render_root}
   test_dataset:
@@ -51,7 +57,9 @@ datamodule:
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}
     mode: "test"
-    effect_types: ${effects}
+    applied_effects: ${applied_effects}
+    effect_to_remove: ${effect_to_remove}
+    max_effects_per_file: ${max_effects_per_file}
     render_files: ${render_files}
     render_root: ${render_root}
 

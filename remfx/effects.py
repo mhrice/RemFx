@@ -675,7 +675,7 @@ class RandomAudioEffectsChannel(torch.nn.Module):
                     p=compressor_prob,
                 ),
                 RandomApply(
-                    [RandomPebalboardReverb(sample_rate)],
+                    [RandomPedalboardReverb(sample_rate)],
                     p=reverb_prob,
                 ),
                 RandomApply(
@@ -696,3 +696,14 @@ class RandomAudioEffectsChannel(torch.nn.Module):
 
     def forward(self, x: torch.Tensor):
         return self.transforms(x)
+
+
+Pedalboard_Effects = [
+    RandomPedalboardReverb,
+    RandomPedalboardChorus,
+    RandomPedalboardDelay,
+    RandomPedalboardDistortion,
+    RandomPedalboardCompressor,
+    RandomPedalboardPhaser,
+    RandomPedalboardLimiter,
+]

@@ -1,5 +1,5 @@
 # @package _global_
-effects:
+effect_to_remove:
   Compressor:
     _target_: remfx.effects.RandomPedalboardCompressor
     sample_rate: ${sample_rate}
