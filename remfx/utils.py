@@ -132,10 +132,9 @@ def create_sequential_chunks(
     """
     chunks = []
     audio, sr = torchaudio.load(audio_file)
-    chunk_size_in_samples = chunk_size * sr
-    chunk_starts = torch.arange(0, audio.shape[-1], chunk_size_in_samples)
+    chunk_starts = torch.arange(0, audio.shape[-1], chunk_size)
     for start in chunk_starts:
-        if start + chunk_size_in_samples > audio.shape[-1]:
+        if start + chunk_size > audio.shape[-1]:
             break
-        chunks.append(audio[:, start : start + chunk_size_in_samples])
+        chunks.append(audio[:, start : start + chunk_size])
     return chunks, sr

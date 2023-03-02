@@ -55,6 +55,29 @@ class RemFXModel(pl.LightningModule):
         )
         return optimizer
 
+    # Add step-based learning rate scheduler
+    def optimizer_step(
+        self,
+        epoch,
+        batch_idx,
+        optimizer,
+        optimizer_idx,
+        optimizer_closure,
+        on_tpu,
+        using_native_amp,
+        using_lbfgs,
+    ):
+        # update params
+        optimizer.step(closure=optimizer_closure)
+
+        # update learning rate. Reduce by factor of 10 at 80% and 95% of training
+        if self.trainer.global_step == 0.8 * self.trainer.max_steps:
+            for pg in optimizer.param_groups:
+                pg["lr"] = 0.1 * pg["lr"]
+        if self.trainer.global_step == 0.95 * self.trainer.max_steps:
+            for pg in optimizer.param_groups:
+                pg["lr"] = 0.1 * pg["lr"]
+
     def training_step(self, batch, batch_idx):
         loss = self.common_step(batch, batch_idx, mode="train")
         return loss
@@ -215,7 +238,7 @@ class OpenUnmixModel(torch.nn.Module):
         X = spectrogram(x, self.window, self.n_fft, self.hop_length, self.alpha)
         Y = self.model(X)
         sep_out = self.separator(x).squeeze(1)
-        loss = self.mrstftloss(sep_out, target) + self.l1loss(sep_out, target)
+        loss = self.mrstftloss(sep_out, target) + self.l1loss(sep_out, target) * 100
 
         return loss, sep_out
 
@@ -236,7 +259,7 @@ class DemucsModel(torch.nn.Module):
     def forward(self, batch):
         x, target, label = batch
         output = self.model(x).squeeze(1)
-        loss = self.mrstftloss(output, target) + self.l1loss(output, target)
+        loss = self.mrstftloss(output, target) + self.l1loss(output, target) * 100
         return loss, output
 
     def sample(self, x: Tensor) -> Tensor:
@@ -264,10 +287,13 @@ def log_wandb_audio_batch(
     samples: Tensor,
     sampling_rate: int,
     caption: str = "",
+    max_items: int = 10,
 ):
     num_items = samples.shape[0]
     samples = rearrange(samples, "b c t -> b t c")
     for idx in range(num_items):
+        if idx >= max_items:
+            break
         logger.experiment.log(
             {
                 f"{id}_{idx}": wandb.Audio(

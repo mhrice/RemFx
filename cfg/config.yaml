@@ -6,8 +6,8 @@ defaults:
 seed: 12345
 train: True
 sample_rate: 48000
+chunk_size: 262144 # 5.5s
 logs_dir: "./logs"
-log_every_n_steps: 1000
 render_files: True
 render_root: "./data/processed"
 
@@ -21,6 +21,9 @@ callbacks:
     verbose: False
     dirpath: ${logs_dir}/ckpts/${now:%Y-%m-%d-%H-%M-%S}
     filename: '{epoch:02d}-{valid_loss:.3f}'
+  learning_rate_monitor:
+    _target_: pytorch_lightning.callbacks.LearningRateMonitor
+    logging_interval: "step"
 
 datamodule:
   _target_: remfx.datasets.VocalSetDatamodule
@@ -28,27 +31,27 @@ datamodule:
     _target_: remfx.datasets.VocalSet
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
-    chunk_size_in_sec: 6
+    chunk_size: ${chunk_size}
     mode: "train"
-    effect_types: ${effects.train_effects}
+    effect_types: ${effects}
     render_files: ${render_files}
     render_root: ${render_root}
   val_dataset:
     _target_: remfx.datasets.VocalSet
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
-    chunk_size_in_sec: 6
+    chunk_size: ${chunk_size}
     mode: "val"
-    effect_types: ${effects.val_effects}
+    effect_types: ${effects}
     render_files: ${render_files}
     render_root: ${render_root}
   test_dataset:
     _target_: remfx.datasets.VocalSet
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
-    chunk_size_in_sec: 6
+    chunk_size: ${chunk_size}
     mode: "test"
-    effect_types: ${effects.val_effects}
+    effect_types: ${effects}
     render_files: ${render_files}
     render_root: ${render_root}
 
@@ -76,3 +79,5 @@ trainer:
   accumulate_grad_batches: 1
   accelerator: null
   devices: 1
+  gradient_clip_val: 10.0
+  max_steps: 50000

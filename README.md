@@ -22,7 +22,7 @@ Models and effects detailed below.
 
 To add gpu, add `trainer.accelerator='gpu' trainer.devices=-1` to the command-line
 
-Ex. `python scripts/train.py +exp=umx_distortion trainer.accelerator='gpu' trainer.devices=-1`
+Ex. `python scripts/train.py +exp=umx_distortion trainer.accelerator='gpu' trainer.devices=1`
 
 ### Current Models
 - `umx`
