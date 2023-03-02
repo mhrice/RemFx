@@ -36,7 +36,7 @@ class VocalSet(Dataset):
         self.files = sorted(list(mode_path.glob("./**/*.wav")))
         self.normalize = effects.LoudnessNormalize(sample_rate, target_lufs_db=-20)
         self.effect_types = effect_types
-        effect_str = "_".join([e.__class__.__name__ for e in self.effect_types])
+        effect_str = "_".join([e for e in self.effect_types])
         self.processed_root = self.render_root / "processed" / effect_str / self.mode
         if self.processed_root.exists():
             print("Found processed files.")
