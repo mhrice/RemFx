@@ -43,9 +43,9 @@ class VocalSet(Dataset):
         self.files = sorted(list(mode_path.glob("./**/*.wav")))
         self.normalize = effects.LoudnessNormalize(sample_rate, target_lufs_db=-20)
         self.applied_effects = applied_effects
-        self.effect_to_remove_name = list(effect_to_remove.keys())[0]
+        self.effect_to_remove_name = "_".join([e for e in self.effect_to_remove])
 
-        effect_str = "_".join([e for e in self.applied_effects])
+        effect_str = "__".join([e for e in self.applied_effects])
         effect_str += f"_{self.effect_to_remove_name}"
         self.proc_root = self.render_root / "processed" / effect_str / self.mode
 
@@ -108,7 +108,8 @@ class VocalSet(Dataset):
         if self.max_effects_per_file > 1:
             num_effects = torch.randint(self.max_effects_per_file - 1, (1,)).item()
             # Remove effect to remove from applied effects if present
-            self.applied_effects.pop(self.effect_to_remove_name, None)
+            for effect in self.effect_to_remove:
+                self.applied_effects.pop(effect, None)
 
             # Choose random effects to apply
             effect_indices = torch.randperm(len(self.applied_effects.keys()))[
@@ -124,9 +125,11 @@ class VocalSet(Dataset):
                 labels.append(ALL_EFFECTS.index(type(effect)))
 
         # Apply effect_to_remove
-        effect = self.effect_to_remove[self.effect_to_remove_name]
-        wet = effect(torch.clone(dry))
-        labels.append(ALL_EFFECTS.index(type(effect)))
+        wet = torch.clone(dry)
+        for effect_name in self.effect_to_remove:
+            effect = self.effect_to_remove[effect_name]
+            wet = effect(dry)
+            labels.append(ALL_EFFECTS.index(type(effect)))
 
         # Convert labels to one-hot
         one_hot = F.one_hot(torch.tensor(labels), num_classes=len(ALL_EFFECTS))
