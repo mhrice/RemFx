@@ -1,5 +1,0 @@
-# @package _global_
-defaults:
-  - override /model: demucs
-  - override /applied_effects: all
-  - override /effect_to_remove: reverb

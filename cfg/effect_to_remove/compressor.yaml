@@ -1,9 +1,0 @@
-# @package _global_
-effect_to_remove:
-  Compressor:
-    _target_: remfx.effects.RandomPedalboardCompressor
-    sample_rate: ${sample_rate}
-    min_threshold_db: -42.0
-    max_threshold_db: -20.0
-    min_ratio: 1.5
-    max_ratio: 6.0

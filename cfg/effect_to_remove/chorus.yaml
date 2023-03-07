@@ -1,7 +1,0 @@
-# @package _global_
-effect_to_remove:
-  Chorus:
-    _target_: remfx.effects.RandomPedalboardChorus
-    sample_rate: ${sample_rate}
-    min_depth: 0.2
-    min_mix: 0.3

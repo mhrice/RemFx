@@ -14,32 +14,35 @@
 
 ## Train model
 1. Change Wandb and data root variables in `shell_vars.sh` and `source shell_vars.sh`
-2. `python scripts/train.py +exp=umx_distortion`
-or
-2. `python scripts/train.py +exp=demucs_distortion`
-See cfg for more options. Generally they are `+exp={model}_{effect}`
-Models and effects detailed below.
+2. `python scripts/train.py model=demucs "effects_to_remove=[distortion]"`
 
-To add gpu, add `trainer.accelerator='gpu' trainer.devices=-1` to the command-line
 
-Ex. `python scripts/train.py +exp=umx_distortion trainer.accelerator='gpu' trainer.devices=1`
-
-### Current Models
+## Models
 - `umx`
 - `demucs`
 
-### Current Effects
+## Effects
 - `chorus`
 - `compressor`
 - `distortion`
 - `reverb`
-- `all` (choose random effect to apply to each file)
 
-### Testing
-Experiment dictates data, ckpt dictates model
-`python scripts/test.py +exp=umx_distortion.yaml +ckpt_path=test_ckpts/umx_dist.ckpt`
+## Train CLI Options
+- `max_kept_effects={n}` max number of <b> Kept </b> effects to apply to each file (default: 3)
+- `model={model}` architecture to use (see 'Models')
+- `shuffle_kept_effects=True/False` Shuffle kept effects (default: True)
+- `shuffle_removed_effects=True/False` Shuffle Removed effects (default: False)
+- `effects_to_use={effect}` Effects to use (see 'Effects') (default: all in the list)
+- `effects_to_remove={effect}` Effects to remove (see 'Effects') (default: all in the list)
+- `trainer.accelerator='gpu'` : Use GPU (default: None)
+- `trainer.devices={n}` Number of GPUs to use (default: 1)
+- `render_files=True/False` Render files. Disable to skip rendering stage (default: True)
+- `render_root={path/to/dir}`. Root directory to render files to (default: DATASET_ROOT)
+
+Example: `python scripts/train.py model=demucs "effects_to_use=[distortion, reverb]" "effects_to_remove=[distortion]" "max_kept_effects=2" "shuffle_kept_effects=False" "shuffle_removed_effects=True" trainer.accelerator='gpu' trainer.devices=2`
+
 
 ## Misc.
 By default, files are rendered to `input_dir / processed / {string_of_effects} / {train|val|test}`.
-To skip rendering files (use previously rendered), add `render_files=False` to the command-line (added to test by default).
-To change the rendered location, add `render_root={path/to/dir}` to the command-line (use this for train and test)
+
+
