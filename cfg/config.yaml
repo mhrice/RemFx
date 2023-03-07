@@ -3,7 +3,6 @@ defaults:
   - model: null
   - effects: all
 
-
 seed: 12345
 train: True
 sample_rate: 48000
