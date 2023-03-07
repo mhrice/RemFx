@@ -1,3 +1,5 @@
+import os
+import glob
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
@@ -14,6 +16,29 @@ import shutil
 # https://zenodo.org/record/1193957 -> VocalSet
 
 ALL_EFFECTS = effects.Pedalboard_Effects
+
+singer_splits = {
+    "train": [
+        "male1",
+        "male2",
+        "male3",
+        "male4",
+        "male5",
+        "male6",
+        "male7",
+        "male8",
+        "male9",
+        "female1",
+        "female2",
+        "female3",
+        "female4",
+        "female5",
+        "female6",
+        "female7",
+    ],
+    "val": ["male10", "female8"],
+    "test": ["male11", "female9"],
+}
 
 
 class VocalSet(Dataset):
@@ -40,7 +65,17 @@ class VocalSet(Dataset):
         self.max_effects_per_file = max_effects_per_file
         self.effect_to_remove = effect_to_remove
         mode_path = self.root / self.mode
-        self.files = sorted(list(mode_path.glob("./**/*.wav")))
+
+        # find all singer directories
+        singer_dirs = glob.glob(os.path.join(self.root, "data_by_singer", "*"))
+        singer_dirs = [
+            sd for sd in singer_dirs if os.path.basename(sd) in singer_splits[mode]
+        ]
+        self.files = []
+        for singer_dir in singer_dirs:
+            self.files += glob.glob(os.path.join(singer_dir, "**", "**", "*.wav"))
+        self.files = sorted(self.files)
+
         self.normalize = effects.LoudnessNormalize(sample_rate, target_lufs_db=-20)
         self.applied_effects = applied_effects
         self.effect_to_remove_name = "_".join([e for e in self.effect_to_remove])
