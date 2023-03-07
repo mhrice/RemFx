@@ -47,6 +47,7 @@ setup(
         "pyloudnorm",
         "pedalboard",
         "frechet_audio_distance",
+        "ordered-set",
     ],
     include_package_data=True,
     license="Apache License 2.0",

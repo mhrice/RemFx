@@ -10,7 +10,7 @@ from remfx import effects
 from tqdm import tqdm
 from remfx.utils import create_sequential_chunks
 import shutil
-from collections import OrderedSet
+from ordered_set import OrderedSet
 
 
 # https://zenodo.org/record/1193957 -> VocalSet
