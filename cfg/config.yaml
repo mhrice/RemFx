@@ -1,10 +1,9 @@
 defaults:
   - _self_
   - model: null
-  - applied_effects: null
-  - effect_to_remove: null
+  - effects: all
 
-max_effects_per_file: 3
+
 seed: 12345
 train: True
 sample_rate: 48000
@@ -12,6 +11,22 @@ chunk_size: 262144 # 5.5s
 logs_dir: "./logs"
 render_files: True
 render_root: "./data"
+accelerator: null
+
+max_kept_effects: -1
+max_removed_effects: -1
+shuffle_kept_effects: True
+shuffle_removed_effects: False
+effects_to_use:
+  - compressor
+  - distortion
+  - reverb
+  - chorus
+effects_to_remove:
+  - compressor
+  - distortion
+  - reverb
+  - chorus
 
 callbacks:
   model_checkpoint:
@@ -35,9 +50,13 @@ datamodule:
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}
     mode: "train"
-    applied_effects: ${applied_effects}
-    effect_to_remove: ${effect_to_remove}
-    max_effects_per_file: ${max_effects_per_file}
+    effect_modules: ${effects}
+    effects_to_use: ${effects_to_use}
+    effects_to_remove: ${effects_to_remove}
+    max_kept_effects: ${max_kept_effects}
+    max_removed_effects: ${max_removed_effects}
+    shuffle_kept_effects: ${shuffle_kept_effects}
+    shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
     render_root: ${render_root}
   val_dataset:
@@ -46,9 +65,13 @@ datamodule:
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}
     mode: "val"
-    applied_effects: ${applied_effects}
-    effect_to_remove: ${effect_to_remove}
-    max_effects_per_file: ${max_effects_per_file}
+    effect_modules: ${effects}
+    effects_to_use: ${effects_to_use}
+    effects_to_remove: ${effects_to_remove}
+    max_kept_effects: ${max_kept_effects}
+    max_removed_effects: ${max_removed_effects}
+    shuffle_kept_effects: ${shuffle_kept_effects}
+    shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
     render_root: ${render_root}
   test_dataset:
@@ -57,9 +80,13 @@ datamodule:
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}
     mode: "test"
-    applied_effects: ${applied_effects}
-    effect_to_remove: ${effect_to_remove}
-    max_effects_per_file: ${max_effects_per_file}
+    effect_modules: ${effects}
+    effects_to_use: ${effects_to_use}
+    effects_to_remove: ${effects_to_remove}
+    max_kept_effects: ${max_kept_effects}
+    max_removed_effects: ${max_removed_effects}
+    shuffle_kept_effects: ${shuffle_kept_effects}
+    shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
     render_root: ${render_root}
 
@@ -85,7 +112,8 @@ trainer:
   enable_model_summary: False
   log_every_n_steps: 1 # Logs metrics every N batches
   accumulate_grad_batches: 1
-  accelerator: null
+  accelerator: ${accelerator}
   devices: 1
   gradient_clip_val: 10.0
   max_steps: 50000
+
