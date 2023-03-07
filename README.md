@@ -1,4 +1,6 @@
 
+# Setup
+
 ## Install Packages
 1. `python3 -m venv env`
 2. `source env/bin/activate`
@@ -12,22 +14,12 @@
 3. `unzip VocalSet.zip`
 4. Manually split singers into train, val, test directories
 
-## Train model
+# Training
+## Steps
 1. Change Wandb and data root variables in `shell_vars.sh` and `source shell_vars.sh`
 2. `python scripts/train.py model=demucs "effects_to_remove=[distortion]"`
 
-
-## Models
-- `umx`
-- `demucs`
-
-## Effects
-- `chorus`
-- `compressor`
-- `distortion`
-- `reverb`
-
-## Train Main CLI Options
+## Main CLI Options
 - `max_kept_effects={n}` max number of <b> Kept </b> effects to apply to each file. Set to -1 to always use all effects (default: -1)
 - `max_removed_effects={n}` max number of <b> Removed </b> effects to apply to each file. Set to -1 to always use all effects (default: -1)
 - `model={model}` architecture to use (see 'Models')
@@ -51,6 +43,16 @@ Apply remove effects: ['distortion'] (Up to 4, chosen randomly) -> Wet
 ```
 
 See `cfg/config.yaml` for more options that can be specified on the command line.
+
+## Models
+- `umx`
+- `demucs`
+
+## Effects
+- `chorus`
+- `compressor`
+- `distortion`
+- `reverb`
 
 ## Misc.
 By default, files are rendered to `input_dir / processed / {string_of_effects} / {train|val|test}`.
