@@ -1,4 +1,5 @@
 # @package _global_
 defaults:
   - override /model: umx
-  - override /effects: all
+  - override /applied_effects: all
+  - override /effect_to_remove: all

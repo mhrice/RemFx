@@ -30,7 +30,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "torch>=1.11.0",
-        "torchaudio",
+        "torchaudio>=0.13.0",
         "functorch",
         "scipy",
         "numpy",

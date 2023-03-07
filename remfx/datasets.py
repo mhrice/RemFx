@@ -1,15 +1,19 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
-import torchaudio
 import torch.nn.functional as F
+import torchaudio
 from pathlib import Path
 import pytorch_lightning as pl
-from typing import Any, List
+import sys
+from typing import Any, Dict
 from remfx import effects
 from tqdm import tqdm
 from remfx.utils import create_sequential_chunks
+import shutil
 
 # https://zenodo.org/record/1193957 -> VocalSet
+
+ALL_EFFECTS = effects.Pedalboard_Effects
 
 
 class VocalSet(Dataset):
@@ -18,7 +22,9 @@ class VocalSet(Dataset):
         root: str,
         sample_rate: int,
         chunk_size: int = 3,
-        effect_types: List[torch.nn.Module] = None,
+        applied_effects: Dict[str, torch.nn.Module] = None,
+        effect_to_remove: Dict[str, torch.nn.Module] = None,
+        max_effects_per_file: int = 1,
         render_files: bool = True,
         render_root: str = None,
         mode: str = "train",
@@ -31,22 +37,36 @@ class VocalSet(Dataset):
         self.chunk_size = chunk_size
         self.sample_rate = sample_rate
         self.mode = mode
-
+        self.max_effects_per_file = max_effects_per_file
+        self.effect_to_remove = effect_to_remove
         mode_path = self.root / self.mode
         self.files = sorted(list(mode_path.glob("./**/*.wav")))
         self.normalize = effects.LoudnessNormalize(sample_rate, target_lufs_db=-20)
-        self.effect_types = effect_types
-        effect_str = "_".join([e for e in self.effect_types])
-        self.processed_root = self.render_root / "processed" / effect_str / self.mode
-        if self.processed_root.exists():
+        self.applied_effects = applied_effects
+        self.effect_to_remove_name = "_".join([e for e in self.effect_to_remove])
+
+        effect_str = "__".join([e for e in self.applied_effects])
+        effect_str += f"_{self.effect_to_remove_name}"
+        self.proc_root = self.render_root / "processed" / effect_str / self.mode
+
+        if self.proc_root.exists() and len(list(self.proc_root.iterdir())) > 0:
             print("Found processed files.")
-            render_files = False
+            if render_files:
+                re_render = input(
+                    "WARNING: By default, will re-render files.\n"
+                    "Set render_files=False to skip re-rendering.\n"
+                    "Are you sure you want to re-render? (y/n): "
+                )
+                if re_render != "y":
+                    sys.exit()
+                shutil.rmtree(self.proc_root)
+
         self.num_chunks = 0
         print("Total files:", len(self.files))
         print("Processing files...")
         if render_files:
             # Split audio file into chunks, resample, then apply random effects
-            self.processed_root.mkdir(parents=True, exist_ok=True)
+            self.proc_root.mkdir(parents=True, exist_ok=True)
             for audio_file in tqdm(self.files, total=len(self.files)):
                 chunks, orig_sr = create_sequential_chunks(audio_file, self.chunk_size)
                 for chunk in chunks:
@@ -56,27 +76,16 @@ class VocalSet(Dataset):
                     if resampled_chunk.shape[-1] < chunk_size:
                         # Skip if chunk is too small
                         continue
-                    # Apply effect
-                    effect_idx = torch.rand(1).item() * len(self.effect_types.keys())
-                    effect_name = list(self.effect_types.keys())[int(effect_idx)]
-                    effect = self.effect_types[effect_name]
-                    effected_input = effect(resampled_chunk)
-                    # Normalize
-                    normalized_input = self.normalize(effected_input)
-                    normalized_target = self.normalize(resampled_chunk)
 
-                    output_dir = self.processed_root / str(self.num_chunks)
+                    x, y, effect = self.process_effects(resampled_chunk)
+                    output_dir = self.proc_root / str(self.num_chunks)
                     output_dir.mkdir(exist_ok=True)
-                    torchaudio.save(
-                        output_dir / "input.wav", normalized_input, self.sample_rate
-                    )
-                    torchaudio.save(
-                        output_dir / "target.wav", normalized_target, self.sample_rate
-                    )
-                    torch.save(effect_name, output_dir / "effect_name.pt")
+                    torchaudio.save(output_dir / "input.wav", x, self.sample_rate)
+                    torchaudio.save(output_dir / "target.wav", y, self.sample_rate)
+                    torch.save(effect, output_dir / "effect.pt")
                     self.num_chunks += 1
         else:
-            self.num_chunks = len(list(self.processed_root.iterdir()))
+            self.num_chunks = len(list(self.proc_root.iterdir()))
 
         print(
             f"Found {len(self.files)} {self.mode} files .\n"
@@ -87,12 +96,49 @@ class VocalSet(Dataset):
         return self.num_chunks
 
     def __getitem__(self, idx):
-        input_file = self.processed_root / str(idx) / "input.wav"
-        target_file = self.processed_root / str(idx) / "target.wav"
-        effect_name = torch.load(self.processed_root / str(idx) / "effect_name.pt")
+        input_file = self.proc_root / str(idx) / "input.wav"
+        target_file = self.proc_root / str(idx) / "target.wav"
+        effect_name = torch.load(self.proc_root / str(idx) / "effect.pt")
         input, sr = torchaudio.load(input_file)
         target, sr = torchaudio.load(target_file)
         return (input, target, effect_name)
+
+    def process_effects(self, dry: torch.Tensor):
+        # Apply random number of effects up to num_effects - 1 (excluding effect_to_remove)
+        if self.max_effects_per_file > 1:
+            num_effects = torch.randint(self.max_effects_per_file - 1, (1,)).item()
+            # Remove effect to remove from applied effects if present
+            for effect in self.effect_to_remove:
+                self.applied_effects.pop(effect, None)
+
+            # Choose random effects to apply
+            effect_indices = torch.randperm(len(self.applied_effects.keys()))[
+                :num_effects
+            ]
+            effects_to_apply = [
+                list(self.applied_effects.keys())[i] for i in effect_indices
+            ]
+            labels = []
+            for effect_name in effects_to_apply:
+                effect = self.applied_effects[effect_name]
+                dry = effect(dry)
+                labels.append(ALL_EFFECTS.index(type(effect)))
+
+        # Apply effect_to_remove
+        wet = torch.clone(dry)
+        for effect_name in self.effect_to_remove:
+            effect = self.effect_to_remove[effect_name]
+            wet = effect(dry)
+            labels.append(ALL_EFFECTS.index(type(effect)))
+
+        # Convert labels to one-hot
+        one_hot = F.one_hot(torch.tensor(labels), num_classes=len(ALL_EFFECTS))
+        effects_present = torch.sum(one_hot, dim=0).float()
+
+        # Normalize
+        normalized_dry = self.normalize(dry)
+        normalized_wet = self.normalize(wet)
+        return normalized_dry, normalized_wet, effects_present
 
 
 class VocalSetDatamodule(pl.LightningDataModule):

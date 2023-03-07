@@ -1,5 +1,5 @@
 # @package _global_
-effects:
+effect_to_remove:
   Chorus:
     _target_: remfx.effects.RandomPedalboardChorus
     sample_rate: ${sample_rate}

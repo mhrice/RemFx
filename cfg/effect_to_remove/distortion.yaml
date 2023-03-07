@@ -1,5 +1,5 @@
 # @package _global_
-effects:
+effect_to_remove:
   Distortion:
     _target_: remfx.effects.RandomPedalboardDistortion
     sample_rate: ${sample_rate}
