@@ -26,7 +26,8 @@ class VocalSet(Dataset):
         effect_modules: List[Dict[str, torch.nn.Module]] = None,
         effects_to_use: List[str] = None,
         effects_to_remove: List[str] = None,
-        max_kept_effects: int = 1,
+        max_kept_effects: int = 4,
+        max_removed_effects: int = 4,
         shuffle_kept_effects: bool = True,
         shuffle_removed_effects: bool = False,
         render_files: bool = True,
@@ -44,6 +45,7 @@ class VocalSet(Dataset):
         mode_path = self.root / self.mode
         self.files = sorted(list(mode_path.glob("./**/*.wav")))
         self.max_kept_effects = max_kept_effects
+        self.max_removed_effects = max_removed_effects
         self.effects_to_use = effects_to_use
         self.effects_to_remove = effects_to_remove
         self.normalize = effects.LoudnessNormalize(sample_rate, target_lufs_db=-20)
@@ -130,12 +132,12 @@ class VocalSet(Dataset):
                 )
         kept_fx = list(set(self.effects_to_use) - set(self.effects_to_remove))
         kept_str = "randomly" if self.shuffle_kept_effects else "in order"
-        removed_str = "randomly" if self.shuffle_removed_effects else "in order"
         rem_fx = self.effects_to_remove
+        rem_str = "randomly" if self.shuffle_removed_effects else "in order"
         print(
             f"Effect Summary: \n"
             f"Apply effects: {kept_fx} (Up to {self.max_kept_effects}, chosen {kept_str}) -> Dry\n"
-            f"Apply effects: {rem_fx} (All {len(rem_fx)}, chosen {removed_str}) -> Wet\n"
+            f"Apply effects: {rem_fx} (Up to {self.max_removed_effects}, chosen {rem_str}) -> Wet\n"
         )
         return kept_fx
 
@@ -143,25 +145,34 @@ class VocalSet(Dataset):
         labels = []
 
         # Apply Kept Effects
+        # Shuffle effects if specified
         if self.shuffle_kept_effects:
             effect_indices = torch.randperm(len(self.effects_to_keep))
         else:
             effect_indices = torch.arange(len(self.effects_to_keep))
+        # Up to max_kept_effects
+        effect_indices = effect_indices[: self.max_kept_effects]
+        # Index in effect settings
         effect_names_to_apply = [self.effects_to_keep[i] for i in effect_indices]
         effects_to_apply = [self.effects[i] for i in effect_names_to_apply]
+        # Apply
         for effect in effects_to_apply:
             dry = effect(dry)
             labels.append(ALL_EFFECTS.index(type(effect)))
-        print(labels)
 
         # Apply effects_to_remove
+        # Shuffle effects if specified
         wet = torch.clone(dry)
         if self.shuffle_removed_effects:
             effect_indices = torch.randperm(len(self.effects_to_remove))
         else:
             effect_indices = torch.arange(len(self.effects_to_remove))
+        # Up to max_removed_effects
+        effect_indices = effect_indices[: self.max_removed_effects]
+        # Index in effect settings
         effect_names_to_apply = [self.effects_to_remove[i] for i in effect_indices]
         effects_to_apply = [self.effects[i] for i in effect_names_to_apply]
+        # Apply
         for effect in effects_to_apply:
             wet = effect(wet)
             labels.append(ALL_EFFECTS.index(type(effect)))

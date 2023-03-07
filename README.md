@@ -27,20 +27,21 @@
 - `distortion`
 - `reverb`
 
-## Train CLI Options
+## Train Main CLI Options
 - `max_kept_effects={n}` max number of <b> Kept </b> effects to apply to each file (default: 3)
+- `max_removed_effects={n}` max number of <b> Removed </b> effects to apply to each file (default: 4)
 - `model={model}` architecture to use (see 'Models')
 - `shuffle_kept_effects=True/False` Shuffle kept effects (default: True)
-- `shuffle_removed_effects=True/False` Shuffle Removed effects (default: False)
+- `shuffle_removed_effects=True/False` Shuffle removed effects (default: False)
 - `effects_to_use={effect}` Effects to use (see 'Effects') (default: all in the list)
 - `effects_to_remove={effect}` Effects to remove (see 'Effects') (default: all in the list)
-- `trainer.accelerator='gpu'` : Use GPU (default: None)
-- `trainer.devices={n}` Number of GPUs to use (default: 1)
+- `accelerator=null/gpu` Use GPU (1 device) (default: False)
 - `render_files=True/False` Render files. Disable to skip rendering stage (default: True)
 - `render_root={path/to/dir}`. Root directory to render files to (default: DATASET_ROOT)
 
-Example: `python scripts/train.py model=demucs "effects_to_use=[distortion, reverb]" "effects_to_remove=[distortion]" "max_kept_effects=2" "shuffle_kept_effects=False" "shuffle_removed_effects=True" trainer.accelerator='gpu' trainer.devices=2`
+Example: `python scripts/train.py model=demucs "effects_to_use=[distortion, reverb]" "effects_to_remove=[distortion]" max_kept_effects=2 max_removed_effects=4 shuffle_kept_effects=False shuffle_removed_effects=True accelerator='gpu' render_root='/home/username/datasets/vocalset'`
 
+See `cfg/config.yaml` for more options that can be specified on the command line.
 
 ## Misc.
 By default, files are rendered to `input_dir / processed / {string_of_effects} / {train|val|test}`.

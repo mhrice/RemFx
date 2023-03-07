@@ -11,8 +11,10 @@ chunk_size: 262144 # 5.5s
 logs_dir: "./logs"
 render_files: True
 render_root: "./data"
+accelerator: null
 
 max_kept_effects: 3
+max_removed_effects: 4
 shuffle_kept_effects: True
 shuffle_removed_effects: False
 effects_to_use:
@@ -52,6 +54,7 @@ datamodule:
     effects_to_use: ${effects_to_use}
     effects_to_remove: ${effects_to_remove}
     max_kept_effects: ${max_kept_effects}
+    max_removed_effects: ${max_removed_effects}
     shuffle_kept_effects: ${shuffle_kept_effects}
     shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
@@ -66,6 +69,7 @@ datamodule:
     effects_to_use: ${effects_to_use}
     effects_to_remove: ${effects_to_remove}
     max_kept_effects: ${max_kept_effects}
+    max_removed_effects: ${max_removed_effects}
     shuffle_kept_effects: ${shuffle_kept_effects}
     shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
@@ -80,6 +84,7 @@ datamodule:
     effects_to_use: ${effects_to_use}
     effects_to_remove: ${effects_to_remove}
     max_kept_effects: ${max_kept_effects}
+    max_removed_effects: ${max_removed_effects}
     shuffle_kept_effects: ${shuffle_kept_effects}
     shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
@@ -107,7 +112,7 @@ trainer:
   enable_model_summary: False
   log_every_n_steps: 1 # Logs metrics every N batches
   accumulate_grad_batches: 1
-  accelerator: null
+  accelerator: ${accelerator}
   devices: 1
   gradient_clip_val: 10.0
   max_steps: 50000
