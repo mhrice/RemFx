@@ -86,11 +86,11 @@ class VocalSet(Dataset):
                         # Skip if chunk is too small
                         continue
 
-                    x, y, effect = self.process_effects(resampled_chunk)
+                    dry, wet, effect = self.process_effects(resampled_chunk)
                     output_dir = self.proc_root / str(self.num_chunks)
                     output_dir.mkdir(exist_ok=True)
-                    torchaudio.save(output_dir / "input.wav", x, self.sample_rate)
-                    torchaudio.save(output_dir / "target.wav", y, self.sample_rate)
+                    torchaudio.save(output_dir / "input.wav", wet, self.sample_rate)
+                    torchaudio.save(output_dir / "target.wav", dry, self.sample_rate)
                     torch.save(effect, output_dir / "effect.pt")
                     self.num_chunks += 1
         else:
