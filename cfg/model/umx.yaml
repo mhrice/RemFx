@@ -11,5 +11,7 @@ model:
     _target_: remfx.models.OpenUnmixModel
     n_fft: 2048
     hop_length: 512
+    n_channels: 1
+    alpha: 0.3
     sample_rate: ${sample_rate}
 
