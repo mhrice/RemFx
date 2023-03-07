@@ -1,0 +1,28 @@
+# @package _global_
+defaults:
+  - override /model: demucs
+  - override /effects: all
+seed: 12345
+sample_rate: 48000
+chunk_size: 262144 # 5.5s
+logs_dir: "./logs"
+render_files: True
+render_root: "./data"
+accelerator: null
+max_kept_effects: -1
+max_removed_effects: -1
+shuffle_kept_effects: True
+shuffle_removed_effects: True
+effects_to_use:
+  - compressor
+  - distortion
+  - reverb
+  - chorus
+effects_to_remove:
+  - compressor
+  - distortion
+  - reverb
+  - chorus
+datamodule:
+  batch_size: 16
+  num_workers: 8
