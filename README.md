@@ -28,8 +28,8 @@
 - `reverb`
 
 ## Train Main CLI Options
-- `max_kept_effects={n}` max number of <b> Kept </b> effects to apply to each file (default: 3)
-- `max_removed_effects={n}` max number of <b> Removed </b> effects to apply to each file (default: 4)
+- `max_kept_effects={n}` max number of <b> Kept </b> effects to apply to each file. Set to -1 to always use all effects (default: -1)
+- `max_removed_effects={n}` max number of <b> Removed </b> effects to apply to each file. Set to -1 to always use all effects (default: -1)
 - `model={model}` architecture to use (see 'Models')
 - `shuffle_kept_effects=True/False` Shuffle kept effects (default: True)
 - `shuffle_removed_effects=True/False` Shuffle removed effects (default: False)
@@ -39,11 +39,18 @@
 - `render_files=True/False` Render files. Disable to skip rendering stage (default: True)
 - `render_root={path/to/dir}`. Root directory to render files to (default: DATASET_ROOT)
 
-Example: `python scripts/train.py model=demucs "effects_to_use=[distortion, reverb]" "effects_to_remove=[distortion]" max_kept_effects=2 max_removed_effects=4 shuffle_kept_effects=False shuffle_removed_effects=True accelerator='gpu' render_root='/home/username/datasets/vocalset'`
+Note that "kept effects" are calculated from the difference between `effects_to_use` and `effects_to_remove`.
+
+Example: `python scripts/train.py model=demucs "effects_to_use=[distortion, reverb, chorus]" "effects_to_remove=[distortion]" max_kept_effects=2 max_removed_effects=4 shuffle_kept_effects=False shuffle_removed_effects=True accelerator='gpu' render_root=/scratch/VocalSet'`
+
+Printout:
+```
+Effect Summary:
+Apply kept effects: ['chorus', 'reverb'] (Up to 2, chosen in order) -> Dry
+Apply remove effects: ['distortion'] (Up to 4, chosen randomly) -> Wet
+```
 
 See `cfg/config.yaml` for more options that can be specified on the command line.
 
 ## Misc.
 By default, files are rendered to `input_dir / processed / {string_of_effects} / {train|val|test}`.
-
-

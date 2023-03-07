@@ -10,6 +10,7 @@ from remfx import effects
 from tqdm import tqdm
 from remfx.utils import create_sequential_chunks
 import shutil
+from collections import OrderedSet
 
 
 # https://zenodo.org/record/1193957 -> VocalSet
@@ -22,12 +23,12 @@ class VocalSet(Dataset):
         self,
         root: str,
         sample_rate: int,
-        chunk_size: int = 3,
+        chunk_size: int = 262144,
         effect_modules: List[Dict[str, torch.nn.Module]] = None,
         effects_to_use: List[str] = None,
         effects_to_remove: List[str] = None,
-        max_kept_effects: int = 4,
-        max_removed_effects: int = 4,
+        max_kept_effects: int = -1,
+        max_removed_effects: int = 1,
         shuffle_kept_effects: bool = True,
         shuffle_removed_effects: bool = False,
         render_files: bool = True,
@@ -130,14 +131,25 @@ class VocalSet(Dataset):
                     f"Effect {effect} not found in self.effects. "
                     f"Please choose from {self.effects.keys()}"
                 )
-        kept_fx = list(set(self.effects_to_use) - set(self.effects_to_remove))
+        kept_fx = list(
+            OrderedSet(self.effects_to_use) - OrderedSet(self.effects_to_remove)
+        )
         kept_str = "randomly" if self.shuffle_kept_effects else "in order"
         rem_fx = self.effects_to_remove
         rem_str = "randomly" if self.shuffle_removed_effects else "in order"
+        if self.max_kept_effects == -1:
+            num_kept_str = len(kept_fx)
+        else:
+            num_kept_str = f"Up to {self.max_kept_effects}"
+        if self.max_removed_effects == -1:
+            num_rem_str = len(rem_fx)
+        else:
+            num_rem_str = f"Up to {self.max_removed_effects}"
+
         print(
             f"Effect Summary: \n"
-            f"Apply effects: {kept_fx} (Up to {self.max_kept_effects}, chosen {kept_str}) -> Dry\n"
-            f"Apply effects: {rem_fx} (Up to {self.max_removed_effects}, chosen {rem_str}) -> Wet\n"
+            f"Apply kept effects: {kept_fx} ({num_kept_str}, chosen {kept_str}) -> Dry\n"
+            f"Apply remove effects: {rem_fx} ({num_rem_str}, chosen {rem_str}) -> Wet\n"
         )
         return kept_fx
 
@@ -151,7 +163,11 @@ class VocalSet(Dataset):
         else:
             effect_indices = torch.arange(len(self.effects_to_keep))
         # Up to max_kept_effects
-        effect_indices = effect_indices[: self.max_kept_effects]
+        if self.max_kept_effects != -1:
+            num_kept_effects = int(torch.rand(1).item() * (self.max_kept_effects)) + 1
+        else:
+            num_kept_effects = len(self.effects_to_keep)
+        effect_indices = effect_indices[:num_kept_effects]
         # Index in effect settings
         effect_names_to_apply = [self.effects_to_keep[i] for i in effect_indices]
         effects_to_apply = [self.effects[i] for i in effect_names_to_apply]
@@ -168,6 +184,12 @@ class VocalSet(Dataset):
         else:
             effect_indices = torch.arange(len(self.effects_to_remove))
         # Up to max_removed_effects
+        if self.max_removed_effects != -1:
+            num_kept_effects = (
+                int(torch.rand(1).item() * (self.max_removed_effects)) + 1
+            )
+        else:
+            num_kept_effects = len(self.effects_to_remove)
         effect_indices = effect_indices[: self.max_removed_effects]
         # Index in effect settings
         effect_names_to_apply = [self.effects_to_remove[i] for i in effect_indices]
