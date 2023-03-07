@@ -1,0 +1,5 @@
+# @package _global_
+defaults:
+  - override /model: cnn14
+  - override /applied_effects: all
+  - override /effect_to_remove: all
