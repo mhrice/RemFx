@@ -9,10 +9,9 @@
 5. `pip install -e umx`
 
 ## Download [VocalSet Dataset](https://zenodo.org/record/1193957)
-1. `wget https://zenodo.org/record/1193957/files/VocalSet.zip?download=1`
+1. `wget https://zenodo.org/record/1442513/files/VocalSet1-2.zip?download=1`
 2. `mv VocalSet.zip?download=1 VocalSet.zip`
 3. `unzip VocalSet.zip`
-4. Manually split singers into train, val, test directories
 
 # Training
 ## Steps

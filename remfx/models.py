@@ -94,9 +94,9 @@ class RemFXModel(pl.LightningModule):
         return loss
 
     def common_step(self, batch, batch_idx, mode: str = "train"):
-        loss, output = self.model(batch)
+        x, y, _, _ = batch
+        loss, output = self.model((x, y))
         self.log(f"{mode}_loss", loss)
-        x, y, label = batch
         # Metric logging
         with torch.no_grad():
             for metric in self.metrics:
@@ -123,7 +123,7 @@ class RemFXModel(pl.LightningModule):
     def on_train_batch_start(self, batch, batch_idx):
         # Log initial audio
         if self.log_train_audio:
-            x, y, label = batch
+            x, y, _, _ = batch
             # Concat samples together for easier viewing in dashboard
             input_samples = rearrange(x, "b c t -> c (b t)").unsqueeze(0)
             target_samples = rearrange(y, "b c t -> c (b t)").unsqueeze(0)
@@ -145,7 +145,7 @@ class RemFXModel(pl.LightningModule):
             self.log_train_audio = False
 
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-        x, target, label = batch
+        x, target, _, _ = batch
         # Log Input Metrics
         for metric in self.metrics:
             # SISDR returns negative values, so negate them
@@ -189,7 +189,7 @@ class RemFXModel(pl.LightningModule):
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
         self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
         # Log FAD
-        x, target, label = batch
+        x, target, _, _ = batch
         self.log(
             "Input_FAD",
             self.metrics["FAD"](x, target),
@@ -237,7 +237,7 @@ class OpenUnmixModel(torch.nn.Module):
         self.l1loss = torch.nn.L1Loss()
 
     def forward(self, batch):
-        x, target, label = batch
+        x, target = batch
         X = spectrogram(x, self.window, self.n_fft, self.hop_length, self.alpha)
         Y = self.model(X)
         sep_out = self.separator(x).squeeze(1)
@@ -260,7 +260,7 @@ class DemucsModel(torch.nn.Module):
         self.l1loss = torch.nn.L1Loss()
 
     def forward(self, batch):
-        x, target, label = batch
+        x, target = batch
         output = self.model(x).squeeze(1)
         loss = self.mrstftloss(output, target) + self.l1loss(output, target) * 100
         return loss, output
@@ -275,7 +275,7 @@ class DiffusionGenerationModel(nn.Module):
         self.model = DiffusionModel(in_channels=n_channels)
 
     def forward(self, batch):
-        x, target, label = batch
+        x, target = batch
         sampled_out = self.model.sample(x)
         return self.model(x), sampled_out
 
@@ -479,30 +479,6 @@ class Cnn14(nn.Module):
         clipwise_output = self.fc_audioset(x)
 
         return clipwise_output
-
-
-def spectrogram(
-    x: torch.Tensor,
-    window: torch.Tensor,
-    n_fft: int,
-    hop_length: int,
-    alpha: float,
-) -> torch.Tensor:
-    bs, chs, samp = x.size()
-    x = x.view(bs * chs, -1)  # move channels onto batch dim
-
-    X = torch.stft(
-        x,
-        n_fft=n_fft,
-        hop_length=hop_length,
-        window=window,
-        return_complex=True,
-    )
-
-    # move channels back
-    X = X.view(bs, chs, X.shape[-2], X.shape[-1])
-
-    return torch.pow(X.abs() + 1e-8, alpha)
 
 
 class FXClassifier(pl.LightningModule):

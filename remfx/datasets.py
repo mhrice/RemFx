@@ -19,7 +19,6 @@ from remfx.utils import create_sequential_chunks
 # https://zenodo.org/record/1193957 -> VocalSet
 
 ALL_EFFECTS = effects.Pedalboard_Effects
-print(ALL_EFFECTS)
 
 
 singer_splits = {
@@ -206,7 +205,6 @@ class VocalSet(Dataset):
         else:
             num_kept_effects = len(self.effects_to_keep)
         effect_indices = effect_indices[:num_kept_effects]
-        print(effect_indices)
 
         # Index in effect settings
         effect_names_to_apply = [self.effects_to_keep[i] for i in effect_indices]
@@ -249,8 +247,6 @@ class VocalSet(Dataset):
         for label_idx in dry_labels:
             dry_labels_tensor[label_idx] = 1.0
 
-        # effects_present = torch.sum(one_hot, dim=0).float()
-        print(dry_labels_tensor, wet_labels_tensor)
         # Normalize
         normalized_dry = self.normalize(dry)
         normalized_wet = self.normalize(wet)
