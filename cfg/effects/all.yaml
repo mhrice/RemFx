@@ -32,9 +32,9 @@ effects:
   delay:
       _target_: remfx.effects.RandomPedalboardDelay
       sample_rate: ${sample_rate}
-      min_delay_seconds: float = 0.1,
-      max_delay_sconds: float = 1.0,
-      min_feedback: float = 0.05,
-      max_feedback: float = 0.6,
-      min_mix: float = 0.2,
-      max_mix: float = 0.7,
+      min_delay_seconds: 0.1
+      max_delay_sconds: 1.0
+      min_feedback: 0.05
+      max_feedback: 0.6
+      min_mix: 0.2
+      max_mix: 0.7
