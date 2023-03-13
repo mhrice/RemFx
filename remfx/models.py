@@ -2,16 +2,16 @@ import torch
 import torchmetrics
 import pytorch_lightning as pl
 from torch import Tensor, nn
-from einops import rearrange
+from torch.nn import functional as F
 from torchaudio.models import HDemucs
 from audio_diffusion_pytorch import DiffusionModel
 from auraloss.time import SISDRLoss
 from auraloss.freq import MultiResolutionSTFTLoss
 from umx.openunmix.model import OpenUnmix, Separator
 
-from utils import FADLoss, spectrogram, log_wandb_audio_batch
-from dptnet import DPTNet_base
-from dcunet import RefineSpectrogramUnet
+from remfx.utils import FADLoss, spectrogram
+from remfx.dptnet import DPTNet_base
+from remfx.dcunet import RefineSpectrogramUnet
 
 
 class RemFX(pl.LightningModule):
@@ -55,41 +55,29 @@ class RemFX(pl.LightningModule):
             eps=self.lr_eps,
             weight_decay=self.lr_weight_decay,
         )
-        return optimizer
-
-    # Add step-based learning rate scheduler
-    def optimizer_step(
-        self,
-        epoch,
-        batch_idx,
-        optimizer,
-        optimizer_idx,
-        optimizer_closure,
-        on_tpu,
-        using_lbfgs,
-    ):
-        # update params
-        optimizer.step(closure=optimizer_closure)
-
-        # update learning rate. Reduce by factor of 10 at 80% and 95% of training
-        if self.trainer.global_step == 0.8 * self.trainer.max_steps:
-            for pg in optimizer.param_groups:
-                pg["lr"] = 0.1 * pg["lr"]
-        if self.trainer.global_step == 0.95 * self.trainer.max_steps:
-            for pg in optimizer.param_groups:
-                pg["lr"] = 0.1 * pg["lr"]
+        lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
+            optimizer,
+            [0.8 * self.trainer.max_steps, 0.95 * self.trainer.max_steps],
+            gamma=0.1,
+        )
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": lr_scheduler,
+                "monitor": "val_loss",
+                "interval": "step",
+                "frequency": 1,
+            },
+        }
 
     def training_step(self, batch, batch_idx):
-        loss = self.common_step(batch, batch_idx, mode="train")
-        return loss
+        return self.common_step(batch, batch_idx, mode="train")
 
     def validation_step(self, batch, batch_idx):
-        loss = self.common_step(batch, batch_idx, mode="valid")
-        return loss
+        return self.common_step(batch, batch_idx, mode="valid")
 
     def test_step(self, batch, batch_idx):
-        loss = self.common_step(batch, batch_idx, mode="test")
-        return loss
+        return self.common_step(batch, batch_idx, mode="test")
 
     def common_step(self, batch, batch_idx, mode: str = "train"):
         x, y, _, _ = batch  # x, y = (B, C, T), (B, C, T)
@@ -116,88 +104,7 @@ class RemFX(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-
         return loss
-
-    def on_train_batch_start(self, batch, batch_idx):
-        # Log initial audio
-        if self.log_train_audio:
-            x, y, _, _ = batch
-            # Concat samples together for easier viewing in dashboard
-            input_samples = rearrange(x, "b c t -> c (b t)").unsqueeze(0)
-            target_samples = rearrange(y, "b c t -> c (b t)").unsqueeze(0)
-
-            log_wandb_audio_batch(
-                logger=self.logger,
-                id="input_effected_audio",
-                samples=input_samples.cpu(),
-                sampling_rate=self.sample_rate,
-                caption="Training Data",
-            )
-            log_wandb_audio_batch(
-                logger=self.logger,
-                id="target_audio",
-                samples=target_samples.cpu(),
-                sampling_rate=self.sample_rate,
-                caption="Target Data",
-            )
-            self.log_train_audio = False
-
-    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-        x, target, _, _ = batch
-        # Log Input Metrics
-        for metric in self.metrics:
-            # SISDR returns negative values, so negate them
-            if metric == "SISDR":
-                negate = -1
-            else:
-                negate = 1
-            # Only Log FAD on test set
-            if metric == "FAD":
-                continue
-            self.log(
-                f"Input_{metric}",
-                negate * self.metrics[metric](x, target),
-                on_step=False,
-                on_epoch=True,
-                logger=True,
-                prog_bar=True,
-                sync_dist=True,
-            )
-        # Only run on first batch
-        if batch_idx == 0:
-            self.model.eval()
-            with torch.no_grad():
-                y = self.model.sample(x)
-
-            # Concat samples together for easier viewing in dashboard
-            # 2 seconds of silence between each sample
-            silence = torch.zeros_like(x)
-            silence = silence[:, : self.sample_rate * 2]
-
-            concat_samples = torch.cat([y, silence, x, silence, target], dim=-1)
-            log_wandb_audio_batch(
-                logger=self.logger,
-                id="prediction_input_target",
-                samples=concat_samples.cpu(),
-                sampling_rate=self.sample_rate,
-                caption=f"Epoch {self.current_epoch}",
-            )
-            self.model.train()
-
-    def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
-        self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
-        # Log FAD
-        x, target, _, _ = batch
-        self.log(
-            "Input_FAD",
-            self.metrics["FAD"](x, target),
-            on_step=False,
-            on_epoch=True,
-            logger=True,
-            prog_bar=True,
-            sync_dist=True,
-        )
 
 
 class OpenUnmixModel(nn.Module):
@@ -284,9 +191,10 @@ class DiffusionGenerationModel(nn.Module):
 
 
 class DPTNetModel(nn.Module):
-    def __init__(self, sample_rate, **kwargs):
+    def __init__(self, sample_rate, num_bins, **kwargs):
         super().__init__()
         self.model = DPTNet_base(**kwargs)
+        self.num_bins = num_bins
         self.mrstftloss = MultiResolutionSTFTLoss(
             n_bins=self.num_bins, sample_rate=sample_rate
         )
@@ -294,31 +202,42 @@ class DPTNetModel(nn.Module):
 
     def forward(self, batch):
         x, target = batch
-        output = self.model(x).squeeze(1)
+        output = self.model(x.squeeze(1))
         loss = self.mrstftloss(output, target) + self.l1loss(output, target) * 100
         return loss, output
 
     def sample(self, x: Tensor) -> Tensor:
-        return self.model.sample(x)
+        return self.model(x.squeeze(1))
 
 
 class DCUNetModel(nn.Module):
-    def __init__(self, sample_rate, **kwargs):
+    def __init__(self, sample_rate, num_bins, **kwargs):
         super().__init__()
         self.model = RefineSpectrogramUnet(**kwargs)
         self.mrstftloss = MultiResolutionSTFTLoss(
-            n_bins=self.num_bins, sample_rate=sample_rate
+            n_bins=num_bins, sample_rate=sample_rate
         )
         self.l1loss = nn.L1Loss()
 
     def forward(self, batch):
         x, target = batch
-        output = self.model(x).squeeze(1)
+        output = self.model(x.squeeze(1)).unsqueeze(1)  # B x 1 x T
+        # Pad or crop to match target
+        if output.shape[-1] > target.shape[-1]:
+            output = output[:, : target.shape[-1]]
+        elif output.shape[-1] < target.shape[-1]:
+            output = F.pad(output, (0, target.shape[-1] - output.shape[-1]))
         loss = self.mrstftloss(output, target) + self.l1loss(output, target) * 100
         return loss, output
 
     def sample(self, x: Tensor) -> Tensor:
-        return self.model.sample(x)
+        output = self.model(x.squeeze(1)).unsqueeze(1)  # B x 1 x T
+        # Pad or crop to match target
+        if output.shape[-1] > x.shape[-1]:
+            output = output[:, : x.shape[-1]]
+        elif output.shape[-1] < x.shape[-1]:
+            output = F.pad(output, (0, x.shape[-1] - output.shape[-1]))
+        return output
 
 
 class FXClassifier(pl.LightningModule):

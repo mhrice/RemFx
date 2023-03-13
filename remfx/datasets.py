@@ -5,7 +5,6 @@ import torch
 import shutil
 import torchaudio
 import pytorch_lightning as pl
-import torch.nn.functional as F
 
 from tqdm import tqdm
 from pathlib import Path

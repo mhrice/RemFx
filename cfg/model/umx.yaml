@@ -1,6 +1,6 @@
 # @package _global_
 model:
-  _target_: remfx.models.RemFx
+  _target_: remfx.models.RemFX
   lr: 1e-4
   lr_beta1: 0.95
   lr_beta2: 0.999
@@ -14,4 +14,3 @@ model:
     n_channels: 1
     alpha: 0.3
     sample_rate: ${sample_rate}
-

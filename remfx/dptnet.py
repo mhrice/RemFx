@@ -57,11 +57,10 @@ class DPTNet_base(nn.Module):
         self.mask_conv1x1 = nn.Conv1d(self.feature_dim, self.enc_dim, 1, bias=False)
         self.decoder = DPTDecoder(n_filters=enc_dim, window_size=win_len)
 
-    def forward(self, batch):
+    def forward(self, mix):
         """
         mix: shape (batch, T)
         """
-        mix, target = batch
         batch_size = mix.shape[0]
         mix = self.dpt_encoder(mix)  # (B, E, L)
 

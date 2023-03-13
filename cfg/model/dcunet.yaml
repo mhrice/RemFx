@@ -1,6 +1,6 @@
 # @package _global_
 model:
-  _target_: remfx.models.RemFx
+  _target_: remfx.models.RemFX
   lr: 1e-4
   lr_beta1: 0.95
   lr_beta2: 0.999
@@ -9,7 +9,7 @@ model:
   sample_rate: ${sample_rate}
   network:
     _target_: remfx.models.DCUNetModel
-    spec_dim: 256 + 1
+    spec_dim: 257
     hidden_dim: 768
     filter_len: 512
     hop_len: 64
@@ -20,3 +20,5 @@ model:
     is_mask: True
     norm: 'ins'
     act: 'comp'
+    sample_rate: ${sample_rate}
+    num_bins: 1025

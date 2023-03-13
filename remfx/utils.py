@@ -7,10 +7,8 @@ from frechet_audio_distance import FrechetAudioDistance
 import numpy as np
 import torch
 import torchaudio
-from torch import Tensor, nn
-import wandb
-from einops import rearrange
-from torch._six import container_abcs
+from torch import nn
+import collections.abc
 
 
 def get_logger(name=__name__) -> logging.Logger:
@@ -144,30 +142,6 @@ def create_sequential_chunks(
     return chunks, sr
 
 
-def log_wandb_audio_batch(
-    logger: pl.loggers.WandbLogger,
-    id: str,
-    samples: Tensor,
-    sampling_rate: int,
-    caption: str = "",
-    max_items: int = 10,
-):
-    num_items = samples.shape[0]
-    samples = rearrange(samples, "b c t -> b t c")
-    for idx in range(num_items):
-        if idx >= max_items:
-            break
-        logger.experiment.log(
-            {
-                f"{id}_{idx}": wandb.Audio(
-                    samples[idx].cpu().numpy(),
-                    caption=caption,
-                    sample_rate=sampling_rate,
-                )
-            }
-        )
-
-
 def spectrogram(
     x: torch.Tensor,
     window: torch.Tensor,
@@ -209,7 +183,7 @@ def init_bn(bn):
 
 def _ntuple(n: int):
     def parse(x):
-        if isinstance(x, container_abcs.Iterable):
+        if isinstance(x, collections.abc.Iterable):
             return x
         return tuple([x] * n)
 

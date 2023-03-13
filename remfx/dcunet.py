@@ -5,11 +5,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from utils import single, concat_complex
 from torch.nn.init import calculate_gain
 from typing import Tuple
 from scipy.signal import get_window
 from librosa.util import pad_center
+from remfx.utils import single, concat_complex
 
 
 class ComplexConvBlock(nn.Module):
@@ -549,7 +549,7 @@ class ComplexActLayer(nn.Module):
 
     def forward(self, x):
         real, img = x.chunk(2, 1)
-        return torch.cat([F.leaky_relu_(real), torch.tanh(img) * np.pi], dim=1)
+        return torch.cat([F.leaky_relu(real), torch.tanh(img) * np.pi], dim=1)
 
 
 class STFT(nn.Module):

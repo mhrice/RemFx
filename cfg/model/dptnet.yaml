@@ -1,6 +1,6 @@
 # @package _global_
 model:
-  _target_: remfx.models.RemFx
+  _target_: remfx.models.RemFX
   lr: 1e-4
   lr_beta1: 0.95
   lr_beta2: 0.999
@@ -16,3 +16,5 @@ model:
     segment_size: 250
     nspk: 1
     win_len: 2
+    sample_rate: ${sample_rate}
+    num_bins: 1025
