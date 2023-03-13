@@ -1,0 +1,22 @@
+# @package _global_
+model:
+  _target_: remfx.models.RemFx
+  lr: 1e-4
+  lr_beta1: 0.95
+  lr_beta2: 0.999
+  lr_eps: 1e-6
+  lr_weight_decay: 1e-3
+  sample_rate: ${sample_rate}
+  network:
+    _target_: remfx.models.DCUNetModel
+    spec_dim: 256 + 1
+    hidden_dim: 768
+    filter_len: 512
+    hop_len: 64
+    block_layers: 4
+    layers: 4
+    kernel_size: 3
+    refine_layers: 1
+    is_mask: True
+    norm: 'ins'
+    act: 'comp'

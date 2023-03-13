@@ -250,6 +250,7 @@ class VocalSet(Dataset):
         # Normalize
         normalized_dry = self.normalize(dry)
         normalized_wet = self.normalize(wet)
+
         return normalized_dry, normalized_wet, dry_labels_tensor, wet_labels_tensor
 
 
