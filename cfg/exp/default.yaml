@@ -12,17 +12,20 @@ accelerator: null
 max_kept_effects: -1
 max_removed_effects: -1
 shuffle_kept_effects: True
-shuffle_removed_effects: True
+shuffle_removed_effects: False
+num_classes: 5
 effects_to_use:
   - compressor
   - distortion
   - reverb
   - chorus
+  - delay
 effects_to_remove:
   - compressor
   - distortion
   - reverb
   - chorus
+  - delay
 datamodule:
   batch_size: 16
   num_workers: 8

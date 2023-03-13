@@ -701,7 +701,7 @@ class RandomAudioEffectsChannel(torch.nn.Module):
 Pedalboard_Effects = [
     RandomPedalboardReverb,
     RandomPedalboardChorus,
-    # RandomPedalboardDelay,
+    RandomPedalboardDelay,
     RandomPedalboardDistortion,
     RandomPedalboardCompressor,
     # RandomPedalboardPhaser,
