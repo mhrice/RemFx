@@ -7,10 +7,13 @@ from torch import Tensor
 
 
 class AudioCallback(Callback):
-    def __init__(self, sample_rate, *args, **kwargs):
+    def __init__(self, sample_rate, log_audio, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.log_audio = log_audio
         self.log_train_audio = True
         self.sample_rate = sample_rate
+        if not self.log_audio:
+            self.log_train_audio = False
 
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         # Log initial audio
@@ -41,7 +44,7 @@ class AudioCallback(Callback):
     ):
         x, target, _, _ = batch
         # Only run on first batch
-        if batch_idx == 0:
+        if batch_idx == 0 and self.log_audio:
             with torch.no_grad():
                 y = pl_module.model.sample(x)
             # Concat samples together for easier viewing in dashboard

@@ -11,6 +11,7 @@ logs_dir: "./logs"
 render_files: True
 render_root: "./data"
 accelerator: null
+log_audio: True
 
 # Effects
 max_kept_effects: -1
@@ -47,6 +48,7 @@ callbacks:
   audio_logging:
     _target_: remfx.callbacks.AudioCallback
     sample_rate: ${sample_rate}
+    log_audio: ${log_audio}
   metric_logging:
     _target_: remfx.callbacks.MetricCallback
 
