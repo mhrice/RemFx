@@ -12,6 +12,7 @@ from umx.openunmix.model import OpenUnmix, Separator
 from remfx.utils import FADLoss, spectrogram
 from remfx.dptnet import DPTNet_base
 from remfx.dcunet import RefineSpectrogramUnet
+from remfx.tcn import TCN
 
 
 class RemFX(pl.LightningModule):
@@ -232,6 +233,36 @@ class DCUNetModel(nn.Module):
 
     def sample(self, x: Tensor) -> Tensor:
         output = self.model(x.squeeze(1)).unsqueeze(1)  # B x 1 x T
+        # Pad or crop to match target
+        if output.shape[-1] > x.shape[-1]:
+            output = output[:, : x.shape[-1]]
+        elif output.shape[-1] < x.shape[-1]:
+            output = F.pad(output, (0, x.shape[-1] - output.shape[-1]))
+        return output
+
+
+class TCNModel(nn.Module):
+    def __init__(self, sample_rate, num_bins, **kwargs):
+        super().__init__()
+        self.model = TCN(**kwargs)
+        self.mrstftloss = MultiResolutionSTFTLoss(
+            n_bins=num_bins, sample_rate=sample_rate
+        )
+        self.l1loss = nn.L1Loss()
+
+    def forward(self, batch):
+        x, target = batch
+        output = self.model(x)  # B x 1 x T
+        # Pad or crop to match target
+        if output.shape[-1] > x.shape[-1]:
+            output = output[:, : x.shape[-1]]
+        elif output.shape[-1] < x.shape[-1]:
+            output = F.pad(output, (0, x.shape[-1] - output.shape[-1]))
+        loss = self.mrstftloss(output, target) + self.l1loss(output, target) * 100
+        return loss, output
+
+    def sample(self, x: Tensor) -> Tensor:
+        output = self.model(x)  # B x 1 x T
         # Pad or crop to match target
         if output.shape[-1] > x.shape[-1]:
             output = output[:, : x.shape[-1]]

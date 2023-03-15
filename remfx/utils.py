@@ -204,3 +204,15 @@ def concat_complex(a: torch.tensor, b: torch.tensor, dim: int = 1) -> torch.tens
     a_real, a_img = a.chunk(2, dim)
     b_real, b_img = b.chunk(2, dim)
     return torch.cat([a_real, b_real, a_img, b_img], dim=dim)
+
+
+def center_crop(x, length: int):
+    start = (x.shape[-1] - length) // 2
+    stop = start + length
+    return x[..., start:stop]
+
+
+def causal_crop(x, length: int):
+    stop = x.shape[-1] - 1
+    start = stop - length
+    return x[..., start:stop]
