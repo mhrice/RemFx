@@ -19,9 +19,10 @@ from remfx.utils import create_sequential_chunks
 # https://zenodo.org/record/1193957 -> VocalSet
 
 ALL_EFFECTS = effects.Pedalboard_Effects
+print(ALL_EFFECTS)
 
 
-singer_splits = {
+vocalset_splits = {
     "train": [
         "male1",
         "male2",
@@ -43,6 +44,94 @@ singer_splits = {
     "val": ["male10", "female8"],
     "test": ["male11", "female9"],
 }
+
+guitarset_splits = {"train": ["00", "01", "02", "03"], "val": ["04"], "test": ["05"]}
+idmt_guitar_splits = {
+    "train": ["classical", "country_folk", "jazz", "latin", "metal", "pop"],
+    "val": ["reggae", "ska"],
+    "test": ["rock", "blues"],
+}
+idmt_bass_splits = {
+    "train": ["BE", "BEQ"],
+    "val": ["VIF"],
+    "test": ["VIS"],
+}
+idmt_drums_splits = {
+    "train": ["WaveDrum02", "TechnoDrum01"],
+    "val": ["RealDrum01"],
+    "test": ["TechnoDrum02", "WaveDrum01"],
+}
+
+
+def locate_files(root: str, mode: str):
+    file_list = []
+    # ------------------------- VocalSet -------------------------
+    vocalset_dir = os.path.join(root, "VocalSet1-2")
+    if os.path.isdir(vocalset_dir):
+        # find all singer directories
+        singer_dirs = glob.glob(os.path.join(vocalset_dir, "data_by_singer", "*"))
+        singer_dirs = [
+            sd for sd in singer_dirs if os.path.basename(sd) in vocalset_splits[mode]
+        ]
+        files = []
+        for singer_dir in singer_dirs:
+            files += glob.glob(os.path.join(singer_dir, "**", "**", "*.wav"))
+        print(f"Found {len(files)} files in VocalSet {mode}.")
+        file_list += sorted(files)
+    # ------------------------- GuitarSet -------------------------
+    guitarset_dir = os.path.join(root, "audio_mono-mic")
+    if os.path.isdir(guitarset_dir):
+        files = glob.glob(os.path.join(guitarset_dir, "*.wav"))
+        files = [
+            f
+            for f in files
+            if os.path.basename(f).split("_")[0] in guitarset_splits[mode]
+        ]
+        print(f"Found {len(files)} files in GuitarSet {mode}.")
+        file_list += sorted(files)
+    # ------------------------- IDMT-SMT-GUITAR -------------------------
+    idmt_smt_guitar_dir = os.path.join(root, "IDMT-SMT-GUITAR_V2")
+    if os.path.isdir(idmt_smt_guitar_dir):
+        files = glob.glob(
+            os.path.join(
+                idmt_smt_guitar_dir, "IDMT-SMT-GUITAR_V2", "dataset4", "**", "*.wav"
+            ),
+            recursive=True,
+        )
+        files = [
+            f
+            for f in files
+            if os.path.basename(f).split("_")[0] in idmt_guitar_splits[mode]
+        ]
+        file_list += sorted(files)
+        print(f"Found {len(files)} files in IDMT-SMT-Guitar {mode}.")
+    # ------------------------- IDMT-SMT-BASS -------------------------
+    idmt_smt_bass_dir = os.path.join(root, "IDMT-SMT-BASS")
+    if os.path.isdir(idmt_smt_bass_dir):
+        files = glob.glob(
+            os.path.join(idmt_smt_bass_dir, "**", "*.wav"),
+            recursive=True,
+        )
+        files = [
+            f
+            for f in files
+            if os.path.basename(os.path.dirname(f)) in idmt_bass_splits[mode]
+        ]
+        file_list += sorted(files)
+        print(f"Found {len(files)} files in IDMT-SMT-Bass {mode}.")
+    # ------------------------- IDMT-SMT-DRUMS -------------------------
+    idmt_smt_drums_dir = os.path.join(root, "IDMT-SMT-DRUMS-V2")
+    if os.path.isdir(idmt_smt_drums_dir):
+        files = glob.glob(os.path.join(idmt_smt_drums_dir, "audio", "*.wav"))
+        files = [
+            f
+            for f in files
+            if os.path.basename(f).split("_")[0] in idmt_drums_splits[mode]
+        ]
+        file_list += sorted(files)
+        print(f"Found {len(files)} files in IDMT-SMT-Drums {mode}.")
+
+    return file_list
 
 
 class VocalSet(Dataset):
@@ -82,15 +171,7 @@ class VocalSet(Dataset):
         self.effects_to_keep = self.validate_effect_input()
         self.proc_root = self.render_root / "processed" / effects_string / self.mode
 
-        # find all singer directories
-        singer_dirs = glob.glob(os.path.join(self.root, "data_by_singer", "*"))
-        singer_dirs = [
-            sd for sd in singer_dirs if os.path.basename(sd) in singer_splits[mode]
-        ]
-        self.files = []
-        for singer_dir in singer_dirs:
-            self.files += glob.glob(os.path.join(singer_dir, "**", "**", "*.wav"))
-        self.files = sorted(self.files)
+        self.files = locate_files(self.root, self.mode)
 
         if self.proc_root.exists() and len(list(self.proc_root.iterdir())) > 0:
             print("Found processed files.")
