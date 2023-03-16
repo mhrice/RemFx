@@ -53,3 +53,15 @@ Apply remove effects: ['distortion'] (Up to 4, chosen randomly) -> Wet
 
 ## Misc.
 By default, files are rendered to `input_dir / processed / {string_of_effects} / {train|val|test}`.
+
+
+Download datasets:
+
+```
+python scripts/download.py vocalset guitarset idmt-smt-guitar idmt-smt-bass idmt-smt-drums
+```
+
+To run audio effects classifiction:
+```
+python scripts/train.py model=classifier "effects_to_use=[compressor, distortion, reverb, chorus, delay]" "effects_to_remove=[]" max_kept_effects=5 max_removed_effects=0 shuffle_kept_effects=True shuffle_removed_effects=True accelerator='gpu' render_root=/scratch/RemFX render_files=True
+```
