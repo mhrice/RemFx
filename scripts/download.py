@@ -1,8 +1,6 @@
 import os
-import sys
-import glob
-import torch
 import argparse
+import shutil
 
 
 def download_zip_dataset(dataset_url: str, output_dir: str):
@@ -26,8 +24,42 @@ def process_dataset(dataset_dir: str, output_dir: str):
         pass
     elif dataset_dir == "IDMT-SMT-DRUMS-V2":
         pass
+    elif dataset_dir == "DSD100":
+        shutil.rmtree(os.path.join(output_dir, dataset_dir, "Mixtures"))
+        for dir in os.listdir(os.path.join(output_dir, dataset_dir, "Sources", "Dev")):
+            source = os.path.join(output_dir, dataset_dir, "Sources", "Dev", dir)
+            shutil.move(source, os.path.join(output_dir, dataset_dir))
+        shutil.rmtree(os.path.join(output_dir, dataset_dir, "Sources", "Dev"))
+        for dir in os.listdir(os.path.join(output_dir, dataset_dir, "Sources", "Test")):
+            source = os.path.join(output_dir, dataset_dir, "Sources", "Test", dir)
+            shutil.move(source, os.path.join(output_dir, dataset_dir))
+        shutil.rmtree(os.path.join(output_dir, dataset_dir, "Sources", "Test"))
+        shutil.rmtree(os.path.join(output_dir, dataset_dir, "Sources"))
+
+        os.mkdir(os.path.join(output_dir, dataset_dir, "train"))
+        os.mkdir(os.path.join(output_dir, dataset_dir, "val"))
+        os.mkdir(os.path.join(output_dir, dataset_dir, "test"))
+        files = os.listdir(os.path.join(output_dir, dataset_dir))
+
+        num = 0
+        for dir in files:
+            if not os.path.isdir(os.path.join(output_dir, dataset_dir, dir)):
+                continue
+            if dir == "train" or dir == "val" or dir == "test":
+                continue
+            source = os.path.join(output_dir, dataset_dir, dir, "bass.wav")
+            if num < 80:
+                dest = os.path.join(output_dir, dataset_dir, "train", f"{num}.wav")
+            elif num < 90:
+                dest = os.path.join(output_dir, dataset_dir, "val", f"{num}.wav")
+            else:
+                dest = os.path.join(output_dir, dataset_dir, "test", f"{num}.wav")
+            shutil.move(source, dest)
+            shutil.rmtree(os.path.join(output_dir, dataset_dir, dir))
+            num += 1
+
     else:
-        raise NotImplemented(f"Invalid dataset_dir = {dataset_dir}.")
+        raise NotImplementedError(f"Invalid dataset_dir = {dataset_dir}.")
 
 
 if __name__ == "__main__":
@@ -38,7 +70,7 @@ if __name__ == "__main__":
             "vocalset",
             "guitarset",
             "idmt-smt-guitar",
-            "idmt-smt-bass",
+            "dsd100",
             "idmt-smt-drums",
         ],
         nargs="+",
@@ -49,10 +81,11 @@ if __name__ == "__main__":
         "vocalset": "https://zenodo.org/record/1442513/files/VocalSet1-2.zip",
         "guitarset": "https://zenodo.org/record/3371780/files/audio_mono-mic.zip",
         "IDMT-SMT-GUITAR_V2": "https://zenodo.org/record/7544110/files/IDMT-SMT-GUITAR_V2.zip",
-        "IDMT-SMT-BASS": "https://zenodo.org/record/7188892/files/IDMT-SMT-BASS.zip",
+        "DSD100": "http://liutkus.net/DSD100.zip",
         "IDMT-SMT-DRUMS-V2": "https://zenodo.org/record/7544164/files/IDMT-SMT-DRUMS-V2.zip",
     }
 
     for dataset_name, dataset_url in dataset_urls.items():
         if dataset_name in args.dataset_names:
             download_zip_dataset(dataset_url, "~/data/remfx-data")
+            process_dataset(dataset_name, "~/data/remfx-data")

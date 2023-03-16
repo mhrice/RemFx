@@ -2,7 +2,6 @@ import torch
 import torchmetrics
 import pytorch_lightning as pl
 from torch import Tensor, nn
-from torch.nn import functional as F
 from torchaudio.models import HDemucs
 from audio_diffusion_pytorch import DiffusionModel
 from auraloss.time import SISDRLoss

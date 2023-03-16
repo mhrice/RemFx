@@ -55,6 +55,11 @@ idmt_bass_splits = {
     "val": ["VIF"],
     "test": ["VIS"],
 }
+dsd_100_splits = {
+    "train": ["train"],
+    "val": ["val"],
+    "test": ["test"],
+}
 idmt_drums_splits = {
     "train": ["WaveDrum02", "TechnoDrum01"],
     "val": ["RealDrum01"],
@@ -105,19 +110,28 @@ def locate_files(root: str, mode: str):
         file_list += sorted(files)
         print(f"Found {len(files)} files in IDMT-SMT-Guitar {mode}.")
     # ------------------------- IDMT-SMT-BASS -------------------------
-    idmt_smt_bass_dir = os.path.join(root, "IDMT-SMT-BASS")
-    if os.path.isdir(idmt_smt_bass_dir):
+    # idmt_smt_bass_dir = os.path.join(root, "IDMT-SMT-BASS")
+    # if os.path.isdir(idmt_smt_bass_dir):
+    #     files = glob.glob(
+    #         os.path.join(idmt_smt_bass_dir, "**", "*.wav"),
+    #         recursive=True,
+    #     )
+    #     files = [
+    #         f
+    #         for f in files
+    #         if os.path.basename(os.path.dirname(f)) in idmt_bass_splits[mode]
+    #     ]
+    #     file_list += sorted(files)
+    #     print(f"Found {len(files)} files in IDMT-SMT-Bass {mode}.")
+    # ------------------------- DSD100 ---------------------------------
+    dsd_100_dir = os.path.join(root, "DSD100")
+    if os.path.isdir(dsd_100_dir):
         files = glob.glob(
-            os.path.join(idmt_smt_bass_dir, "**", "*.wav"),
+            os.path.join(dsd_100_dir, mode, "**", "*.wav"),
             recursive=True,
         )
-        files = [
-            f
-            for f in files
-            if os.path.basename(os.path.dirname(f)) in idmt_bass_splits[mode]
-        ]
         file_list += sorted(files)
-        print(f"Found {len(files)} files in IDMT-SMT-Bass {mode}.")
+        print(f"Found {len(files)} files in DSD100 {mode}.")
     # ------------------------- IDMT-SMT-DRUMS -------------------------
     idmt_smt_drums_dir = os.path.join(root, "IDMT-SMT-DRUMS-V2")
     if os.path.isdir(idmt_smt_drums_dir):
@@ -133,7 +147,7 @@ def locate_files(root: str, mode: str):
     return file_list
 
 
-class VocalSet(Dataset):
+class EffectDataset(Dataset):
     def __init__(
         self,
         root: str,
@@ -199,6 +213,9 @@ class VocalSet(Dataset):
                     if resampled_chunk.shape[-1] < chunk_size:
                         # Skip if chunk is too small
                         continue
+                    # Sum to mono
+                    if resampled_chunk.shape[0] > 1:
+                        resampled_chunk = resampled_chunk.sum(0, keepdim=True)
 
                     dry, wet, dry_effects, wet_effects = self.process_effects(
                         resampled_chunk
@@ -334,7 +351,7 @@ class VocalSet(Dataset):
         return normalized_dry, normalized_wet, dry_labels_tensor, wet_labels_tensor
 
 
-class VocalSetDatamodule(pl.LightningDataModule):
+class EffectDatamodule(pl.LightningDataModule):
     def __init__(
         self,
         train_dataset,
