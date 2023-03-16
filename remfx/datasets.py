@@ -211,26 +211,26 @@ class EffectDataset(Dataset):
                 chunks, orig_sr = create_sequential_chunks(
                     random_file_choice, self.chunk_size
                 )
-                for chunk in chunks:
-                    resampled_chunk = torchaudio.functional.resample(
-                        chunk, orig_sr, sample_rate
-                    )
-                    if resampled_chunk.shape[-1] < chunk_size:
-                        # Skip if chunk is too small
-                        continue
-                    # Sum to mono
-                    if resampled_chunk.shape[0] > 1:
-                        resampled_chunk = resampled_chunk.sum(0, keepdim=True)
+                random_chunk = random.choice(chunks)
+                resampled_chunk = torchaudio.functional.resample(
+                    random_chunk, orig_sr, sample_rate
+                )
+                if resampled_chunk.shape[-1] < chunk_size:
+                    # Skip if chunk is too small
+                    continue
+                # Sum to mono
+                if resampled_chunk.shape[0] > 1:
+                    resampled_chunk = resampled_chunk.sum(0, keepdim=True)
 
-                    dry, wet, dry_effects, wet_effects = self.process_effects(
-                        resampled_chunk
-                    )
-                    output_dir = self.proc_root / str(num_chunk)
-                    output_dir.mkdir(exist_ok=True)
-                    torchaudio.save(output_dir / "input.wav", wet, self.sample_rate)
-                    torchaudio.save(output_dir / "target.wav", dry, self.sample_rate)
-                    torch.save(dry_effects, output_dir / "dry_effects.pt")
-                    torch.save(wet_effects, output_dir / "wet_effects.pt")
+                dry, wet, dry_effects, wet_effects = self.process_effects(
+                    resampled_chunk
+                )
+                output_dir = self.proc_root / str(num_chunk)
+                output_dir.mkdir(exist_ok=True)
+                torchaudio.save(output_dir / "input.wav", wet, self.sample_rate)
+                torchaudio.save(output_dir / "target.wav", dry, self.sample_rate)
+                torch.save(dry_effects, output_dir / "dry_effects.pt")
+                torch.save(wet_effects, output_dir / "wet_effects.pt")
 
             print("Finished rendering")
         else:
