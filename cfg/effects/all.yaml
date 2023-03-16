@@ -36,5 +36,5 @@ effects:
       max_delay_sconds: 1.0
       min_feedback: 0.05
       max_feedback: 0.6
-      min_mix: 0.0
+      min_mix: 0.2
       max_mix: 0.7

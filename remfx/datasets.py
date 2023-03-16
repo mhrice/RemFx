@@ -5,7 +5,6 @@ import torch
 import shutil
 import torchaudio
 import pytorch_lightning as pl
-import torch.nn.functional as F
 
 from tqdm import tqdm
 from pathlib import Path
@@ -305,10 +304,10 @@ class VocalSet(Dataset):
             effect_indices = torch.arange(len(self.effects_to_remove))
         # Up to max_removed_effects
         if self.max_removed_effects != -1:
-            num_kept_effects = int(torch.rand(1).item() * (self.max_removed_effects))
+            num_removed_effects = int(torch.rand(1).item() * (self.max_removed_effects))
         else:
-            num_kept_effects = len(self.effects_to_remove)
-        effect_indices = effect_indices[: self.max_removed_effects]
+            num_removed_effects = len(self.effects_to_remove)
+        effect_indices = effect_indices[:num_removed_effects]
         # Index in effect settings
         effect_names_to_apply = [self.effects_to_remove[i] for i in effect_indices]
         effects_to_apply = [self.effects[i] for i in effect_names_to_apply]
@@ -331,6 +330,7 @@ class VocalSet(Dataset):
         # Normalize
         normalized_dry = self.normalize(dry)
         normalized_wet = self.normalize(wet)
+
         return normalized_dry, normalized_wet, dry_labels_tensor, wet_labels_tensor
 
 

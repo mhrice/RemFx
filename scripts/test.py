@@ -3,7 +3,6 @@ import hydra
 from omegaconf import DictConfig
 import remfx.utils as utils
 from pytorch_lightning.utilities.model_summary import ModelSummary
-from remfx.models import RemFXModel
 import torch
 
 log = utils.get_logger(__name__)
