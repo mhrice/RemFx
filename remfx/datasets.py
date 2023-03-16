@@ -210,23 +210,16 @@ class EffectDataset(Dataset):
                 while len(chunks) == 0:
                     random_dataset_choice = random.choice(self.files)
                     random_file_choice = random.choice(random_dataset_choice)
-                    chunks, orig_sr = create_sequential_chunks(
-                        random_file_choice, self.chunk_size
+                    chunks = create_sequential_chunks(
+                        random_file_choice, self.chunk_size, self.sample_rate
                     )
                 random_chunk = random.choice(chunks)
-                resampled_chunk = torchaudio.functional.resample(
-                    random_chunk, orig_sr, sample_rate
-                )
-                if resampled_chunk.shape[-1] < chunk_size:
-                    # Skip if chunk is too small
-                    continue
-                # Sum to mono
-                if resampled_chunk.shape[0] > 1:
-                    resampled_chunk = resampled_chunk.sum(0, keepdim=True)
 
-                dry, wet, dry_effects, wet_effects = self.process_effects(
-                    resampled_chunk
-                )
+                # Sum to mono
+                if random_chunk.shape[0] > 1:
+                    random_chunk = random_chunk.sum(0, keepdim=True)
+
+                dry, wet, dry_effects, wet_effects = self.process_effects(random_chunk)
                 output_dir = self.proc_root / str(num_chunk)
                 output_dir.mkdir(exist_ok=True)
                 torchaudio.save(output_dir / "input.wav", wet, self.sample_rate)
