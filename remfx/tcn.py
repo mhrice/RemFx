@@ -25,8 +25,6 @@ class TCNBlock(nn.Module):
         self.stride = stride
 
         self.crop_fn = crop_fn
-        # Assumes stride of 1
-        padding = (kernel_size + (kernel_size - 1) * (dilation - 1) - 1) // 2
         self.conv1 = nn.Conv1d(
             in_ch,
             out_ch,
