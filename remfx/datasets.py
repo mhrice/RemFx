@@ -5,7 +5,7 @@ import torch
 import shutil
 import torchaudio
 import pytorch_lightning as pl
-
+import random
 from tqdm import tqdm
 from pathlib import Path
 from remfx import effects
@@ -81,7 +81,7 @@ def locate_files(root: str, mode: str):
         for singer_dir in singer_dirs:
             files += glob.glob(os.path.join(singer_dir, "**", "**", "*.wav"))
         print(f"Found {len(files)} files in VocalSet {mode}.")
-        file_list += sorted(files)
+        file_list.append(sorted(files))
     # ------------------------- GuitarSet -------------------------
     guitarset_dir = os.path.join(root, "audio_mono-mic")
     if os.path.isdir(guitarset_dir):
@@ -92,7 +92,7 @@ def locate_files(root: str, mode: str):
             if os.path.basename(f).split("_")[0] in guitarset_splits[mode]
         ]
         print(f"Found {len(files)} files in GuitarSet {mode}.")
-        file_list += sorted(files)
+        file_list.append(sorted(files))
     # ------------------------- IDMT-SMT-GUITAR -------------------------
     idmt_smt_guitar_dir = os.path.join(root, "IDMT-SMT-GUITAR_V2")
     if os.path.isdir(idmt_smt_guitar_dir):
@@ -107,7 +107,7 @@ def locate_files(root: str, mode: str):
             for f in files
             if os.path.basename(f).split("_")[0] in idmt_guitar_splits[mode]
         ]
-        file_list += sorted(files)
+        file_list.append(sorted(files))
         print(f"Found {len(files)} files in IDMT-SMT-Guitar {mode}.")
     # ------------------------- IDMT-SMT-BASS -------------------------
     # idmt_smt_bass_dir = os.path.join(root, "IDMT-SMT-BASS")
@@ -121,7 +121,7 @@ def locate_files(root: str, mode: str):
     #         for f in files
     #         if os.path.basename(os.path.dirname(f)) in idmt_bass_splits[mode]
     #     ]
-    #     file_list += sorted(files)
+    #     file_list.append(sorted(files))
     #     print(f"Found {len(files)} files in IDMT-SMT-Bass {mode}.")
     # ------------------------- DSD100 ---------------------------------
     dsd_100_dir = os.path.join(root, "DSD100")
@@ -130,7 +130,7 @@ def locate_files(root: str, mode: str):
             os.path.join(dsd_100_dir, mode, "**", "*.wav"),
             recursive=True,
         )
-        file_list += sorted(files)
+        file_list.append(sorted(files))
         print(f"Found {len(files)} files in DSD100 {mode}.")
     # ------------------------- IDMT-SMT-DRUMS -------------------------
     idmt_smt_drums_dir = os.path.join(root, "IDMT-SMT-DRUMS-V2")
@@ -141,7 +141,7 @@ def locate_files(root: str, mode: str):
             for f in files
             if os.path.basename(f).split("_")[0] in idmt_drums_splits[mode]
         ]
-        file_list += sorted(files)
+        file_list.append(sorted(files))
         print(f"Found {len(files)} files in IDMT-SMT-Drums {mode}.")
 
     return file_list
@@ -153,6 +153,7 @@ class EffectDataset(Dataset):
         root: str,
         sample_rate: int,
         chunk_size: int = 262144,
+        total_chunks: int = 1000,
         effect_modules: List[Dict[str, torch.nn.Module]] = None,
         effects_to_use: List[str] = None,
         effects_to_remove: List[str] = None,
@@ -170,6 +171,7 @@ class EffectDataset(Dataset):
         self.root = Path(root)
         self.render_root = Path(render_root)
         self.chunk_size = chunk_size
+        self.total_chunks = total_chunks
         self.sample_rate = sample_rate
         self.mode = mode
         self.max_kept_effects = max_kept_effects
@@ -198,14 +200,17 @@ class EffectDataset(Dataset):
                     sys.exit()
                 shutil.rmtree(self.proc_root)
 
-        self.num_chunks = 0
-        print("Total files:", len(self.files))
+        print("Total datasets:", len(self.files))
         print("Processing files...")
         if render_files:
             # Split audio file into chunks, resample, then apply random effects
             self.proc_root.mkdir(parents=True, exist_ok=True)
-            for audio_file in tqdm(self.files, total=len(self.files)):
-                chunks, orig_sr = create_sequential_chunks(audio_file, self.chunk_size)
+            for num_chunk in tqdm(range(self.total_chunks)):
+                random_dataset_choice = random.choice(self.files)
+                random_file_choice = random.choice(random_dataset_choice)
+                chunks, orig_sr = create_sequential_chunks(
+                    random_file_choice, self.chunk_size
+                )
                 for chunk in chunks:
                     resampled_chunk = torchaudio.functional.resample(
                         chunk, orig_sr, sample_rate
@@ -220,23 +225,21 @@ class EffectDataset(Dataset):
                     dry, wet, dry_effects, wet_effects = self.process_effects(
                         resampled_chunk
                     )
-                    output_dir = self.proc_root / str(self.num_chunks)
+                    output_dir = self.proc_root / str(num_chunk)
                     output_dir.mkdir(exist_ok=True)
                     torchaudio.save(output_dir / "input.wav", wet, self.sample_rate)
                     torchaudio.save(output_dir / "target.wav", dry, self.sample_rate)
                     torch.save(dry_effects, output_dir / "dry_effects.pt")
                     torch.save(wet_effects, output_dir / "wet_effects.pt")
-                    self.num_chunks += 1
-        else:
-            self.num_chunks = len(list(self.proc_root.iterdir()))
 
-        print(
-            f"Found {len(self.files)} {self.mode} files .\n"
-            f"Total chunks: {self.num_chunks}"
-        )
+            print("Finished rendering")
+        else:
+            self.total_chunks = len(list(self.proc_root.iterdir()))
+
+        print("Total chunks:", self.total_chunks)
 
     def __len__(self):
-        return self.num_chunks
+        return self.total_chunks
 
     def __getitem__(self, idx):
         input_file = self.proc_root / str(idx) / "input.wav"
