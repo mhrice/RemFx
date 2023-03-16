@@ -7,6 +7,8 @@ from frechet_audio_distance import FrechetAudioDistance
 import numpy as np
 import torch
 import torchaudio
+from torch import nn
+import collections.abc
 
 
 def get_logger(name=__name__) -> logging.Logger:
@@ -138,3 +140,79 @@ def create_sequential_chunks(
             break
         chunks.append(audio[:, start : start + chunk_size])
     return chunks, sr
+
+
+def spectrogram(
+    x: torch.Tensor,
+    window: torch.Tensor,
+    n_fft: int,
+    hop_length: int,
+    alpha: float,
+) -> torch.Tensor:
+    bs, chs, samp = x.size()
+    x = x.view(bs * chs, -1)  # move channels onto batch dim
+
+    X = torch.stft(
+        x,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        window=window,
+        return_complex=True,
+    )
+
+    # move channels back
+    X = X.view(bs, chs, X.shape[-2], X.shape[-1])
+
+    return torch.pow(X.abs() + 1e-8, alpha)
+
+
+def init_layer(layer):
+    """Initialize a Linear or Convolutional layer."""
+    nn.init.xavier_uniform_(layer.weight)
+
+    if hasattr(layer, "bias"):
+        if layer.bias is not None:
+            layer.bias.data.fill_(0.0)
+
+
+def init_bn(bn):
+    """Initialize a Batchnorm layer."""
+    bn.bias.data.fill_(0.0)
+    bn.weight.data.fill_(1.0)
+
+
+def _ntuple(n: int):
+    def parse(x):
+        if isinstance(x, collections.abc.Iterable):
+            return x
+        return tuple([x] * n)
+
+    return parse
+
+
+single = _ntuple(1)
+
+
+def concat_complex(a: torch.tensor, b: torch.tensor, dim: int = 1) -> torch.tensor:
+    """
+    Concatenate two complex tensors in same dimension concept
+    :param a: complex tensor
+    :param b: another complex tensor
+    :param dim: target dimension
+    :return: concatenated tensor
+    """
+    a_real, a_img = a.chunk(2, dim)
+    b_real, b_img = b.chunk(2, dim)
+    return torch.cat([a_real, b_real, a_img, b_img], dim=dim)
+
+
+def center_crop(x, length: int):
+    start = (x.shape[-1] - length) // 2
+    stop = start + length
+    return x[..., start:stop]
+
+
+def causal_crop(x, length: int):
+    stop = x.shape[-1] - 1
+    start = stop - length
+    return x[..., start:stop]

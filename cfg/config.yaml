@@ -11,22 +11,26 @@ logs_dir: "./logs"
 render_files: True
 render_root: "./data"
 accelerator: null
+log_audio: True
 
+# Effects
 max_kept_effects: -1
 max_removed_effects: -1
 shuffle_kept_effects: True
 shuffle_removed_effects: False
-num_classes: 4
+num_classes: 5
 effects_to_use:
   - compressor
   - distortion
   - reverb
   - chorus
+  - delay
 effects_to_remove:
   - compressor
   - distortion
   - reverb
   - chorus
+  - delay
 
 callbacks:
   model_checkpoint:
@@ -41,6 +45,12 @@ callbacks:
   learning_rate_monitor:
     _target_: pytorch_lightning.callbacks.LearningRateMonitor
     logging_interval: "step"
+  audio_logging:
+    _target_: remfx.callbacks.AudioCallback
+    sample_rate: ${sample_rate}
+    log_audio: ${log_audio}
+  metric_logging:
+    _target_: remfx.callbacks.MetricCallback
 
 datamodule:
   _target_: remfx.datasets.VocalSetDatamodule
@@ -116,4 +126,3 @@ trainer:
   devices: 1
   gradient_clip_val: 10.0
   max_steps: 50000
-
