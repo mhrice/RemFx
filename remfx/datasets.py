@@ -206,11 +206,13 @@ class EffectDataset(Dataset):
             # Split audio file into chunks, resample, then apply random effects
             self.proc_root.mkdir(parents=True, exist_ok=True)
             for num_chunk in tqdm(range(self.total_chunks)):
-                random_dataset_choice = random.choice(self.files)
-                random_file_choice = random.choice(random_dataset_choice)
-                chunks, orig_sr = create_sequential_chunks(
-                    random_file_choice, self.chunk_size
-                )
+                chunks = []
+                while len(chunks) == 0:
+                    random_dataset_choice = random.choice(self.files)
+                    random_file_choice = random.choice(random_dataset_choice)
+                    chunks, orig_sr = create_sequential_chunks(
+                        random_file_choice, self.chunk_size
+                    )
                 random_chunk = random.choice(chunks)
                 resampled_chunk = torchaudio.functional.resample(
                     random_chunk, orig_sr, sample_rate
