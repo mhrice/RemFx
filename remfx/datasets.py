@@ -93,22 +93,22 @@ def locate_files(root: str, mode: str):
         ]
         print(f"Found {len(files)} files in GuitarSet {mode}.")
         file_list.append(sorted(files))
-    # ------------------------- IDMT-SMT-GUITAR -------------------------
-    idmt_smt_guitar_dir = os.path.join(root, "IDMT-SMT-GUITAR_V2")
-    if os.path.isdir(idmt_smt_guitar_dir):
-        files = glob.glob(
-            os.path.join(
-                idmt_smt_guitar_dir, "IDMT-SMT-GUITAR_V2", "dataset4", "**", "*.wav"
-            ),
-            recursive=True,
-        )
-        files = [
-            f
-            for f in files
-            if os.path.basename(f).split("_")[0] in idmt_guitar_splits[mode]
-        ]
-        file_list.append(sorted(files))
-        print(f"Found {len(files)} files in IDMT-SMT-Guitar {mode}.")
+    # # ------------------------- IDMT-SMT-GUITAR -------------------------
+    # idmt_smt_guitar_dir = os.path.join(root, "IDMT-SMT-GUITAR_V2")
+    # if os.path.isdir(idmt_smt_guitar_dir):
+    #     files = glob.glob(
+    #         os.path.join(
+    #             idmt_smt_guitar_dir, "IDMT-SMT-GUITAR_V2", "dataset4", "**", "*.wav"
+    #         ),
+    #         recursive=True,
+    #     )
+    #     files = [
+    #         f
+    #         for f in files
+    #         if os.path.basename(f).split("_")[0] in idmt_guitar_splits[mode]
+    #     ]
+    #     file_list.append(sorted(files))
+    #     print(f"Found {len(files)} files in IDMT-SMT-Guitar {mode}.")
     # ------------------------- IDMT-SMT-BASS -------------------------
     # idmt_smt_bass_dir = os.path.join(root, "IDMT-SMT-BASS")
     # if os.path.isdir(idmt_smt_bass_dir):
@@ -207,8 +207,8 @@ class EffectDataset(Dataset):
             self.proc_root.mkdir(parents=True, exist_ok=True)
             for num_chunk in tqdm(range(self.total_chunks)):
                 chunk = None
+                random_dataset_choice = random.choice(self.files)
                 while chunk is None:
-                    random_dataset_choice = random.choice(self.files)
                     random_file_choice = random.choice(random_dataset_choice)
                     chunk = select_random_chunk(
                         random_file_choice, self.chunk_size, self.sample_rate
