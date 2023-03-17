@@ -129,7 +129,7 @@ def create_random_chunks(
 def create_sequential_chunks(
     audio_file: str, chunk_size: int, sample_rate: int
 ) -> List[torch.Tensor]:
-    """Create sequential chunks of size chunk_size (seconds) from an audio file.
+    """Create sequential chunks of size chunk_size from an audio file.
     Return sample_index of start of each chunk and original sr
     """
     chunks = []
@@ -145,6 +145,20 @@ def create_sequential_chunks(
             continue
         chunks.append(chunk)
     return chunks
+
+
+def select_random_chunk(
+    audio_file: str, chunk_size: int, sample_rate: int
+) -> List[torch.Tensor]:
+    """Create sequential chunks of size chunk_size (samples) from an audio file.
+    Return sample_index of start of each chunk and original sr
+    """
+    audio, sr = torchaudio.load(audio_file)
+    max_len = audio.shape[-1] - int(chunk_size * (sample_rate / sr))
+    random_start = torch.randint(0, max_len, (1,)).item()
+    chunk = audio[:, random_start : random_start + chunk_size]
+    resampled_chunk = torchaudio.functional.resample(chunk, sr, sample_rate)
+    return resampled_chunk
 
 
 def spectrogram(

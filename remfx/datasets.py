@@ -12,7 +12,7 @@ from remfx import effects
 from ordered_set import OrderedSet
 from typing import Any, List, Dict
 from torch.utils.data import Dataset, DataLoader
-from remfx.utils import create_sequential_chunks
+from remfx.utils import select_random_chunk
 
 
 # https://zenodo.org/record/1193957 -> VocalSet
@@ -205,21 +205,23 @@ class EffectDataset(Dataset):
         if render_files:
             # Split audio file into chunks, resample, then apply random effects
             self.proc_root.mkdir(parents=True, exist_ok=True)
+            bad_files = set()
             for num_chunk in tqdm(range(self.total_chunks)):
-                chunks = []
-                while len(chunks) == 0:
+                chunk = None
+                while chunk is None:
                     random_dataset_choice = random.choice(self.files)
                     random_file_choice = random.choice(random_dataset_choice)
-                    chunks = create_sequential_chunks(
+                    if random_file_choice in bad_files:
+                        continue
+                    chunk = select_random_chunk(
                         random_file_choice, self.chunk_size, self.sample_rate
                     )
-                random_chunk = random.choice(chunks)
 
                 # Sum to mono
-                if random_chunk.shape[0] > 1:
-                    random_chunk = random_chunk.sum(0, keepdim=True)
+                if chunk.shape[0] > 1:
+                    chunk = chunk.sum(0, keepdim=True)
 
-                dry, wet, dry_effects, wet_effects = self.process_effects(random_chunk)
+                dry, wet, dry_effects, wet_effects = self.process_effects(chunk)
                 output_dir = self.proc_root / str(num_chunk)
                 output_dir.mkdir(exist_ok=True)
                 torchaudio.save(output_dir / "input.wav", wet, self.sample_rate)
