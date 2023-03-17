@@ -205,14 +205,11 @@ class EffectDataset(Dataset):
         if render_files:
             # Split audio file into chunks, resample, then apply random effects
             self.proc_root.mkdir(parents=True, exist_ok=True)
-            bad_files = set()
             for num_chunk in tqdm(range(self.total_chunks)):
                 chunk = None
                 while chunk is None:
                     random_dataset_choice = random.choice(self.files)
                     random_file_choice = random.choice(random_dataset_choice)
-                    if random_file_choice in bad_files:
-                        continue
                     chunk = select_random_chunk(
                         random_file_choice, self.chunk_size, self.sample_rate
                     )
