@@ -84,6 +84,9 @@ class RemFX(pl.LightningModule):
         x, y, _, _ = batch  # x, y = (B, C, T), (B, C, T)
 
         loss, output = self.model((x, y))
+        # Crop target to match output
+        if output.shape[-1] < y.shape[-1]:
+            y = causal_crop(y, output.shape[-1])
         self.log(f"{mode}_loss", loss)
         # Metric logging
         with torch.no_grad():
