@@ -18,7 +18,7 @@ from remfx.utils import select_random_chunk
 # https://zenodo.org/record/1193957 -> VocalSet
 
 ALL_EFFECTS = effects.Pedalboard_Effects
-print(ALL_EFFECTS)
+# print(ALL_EFFECTS)
 
 
 vocalset_splits = {
