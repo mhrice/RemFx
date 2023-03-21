@@ -306,7 +306,8 @@ class EffectDataset(Dataset):
         # Apply
         dry_labels = []
         for effect in effects_to_apply:
-            dry = effect(dry)
+            # Normalize in-between effects
+            dry = self.normalize(effect(dry))
             dry_labels.append(ALL_EFFECTS.index(type(effect)))
 
         # Apply effects_to_remove
@@ -329,7 +330,8 @@ class EffectDataset(Dataset):
 
         wet_labels = []
         for effect in effects_to_apply:
-            wet = effect(wet)
+            # Normalize in-between effects
+            wet = self.normalize(effect(wet))
             wet_labels.append(ALL_EFFECTS.index(type(effect)))
 
         wet_labels_tensor = torch.zeros(len(ALL_EFFECTS))
