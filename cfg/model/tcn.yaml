@@ -16,7 +16,7 @@ model:
     channel_width: 32
     kernel_size: 7
     stack_size: 10
-    dilation_growth: 10
+    dilation_growth: 2
     condition: False
     latent_dim: 2
     norm_type: "identity"
