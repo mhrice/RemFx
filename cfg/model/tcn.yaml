@@ -11,10 +11,10 @@ model:
     _target_: remfx.models.TCNModel
     ninputs: 1
     noutputs: 1
-    nblocks: 4
+    nblocks: 20
     channel_growth: 0
     channel_width: 32
-    kernel_size: 13
+    kernel_size: 7
     stack_size: 10
     dilation_growth: 10
     condition: False
