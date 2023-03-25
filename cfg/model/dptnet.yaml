@@ -10,12 +10,13 @@ model:
   network:
     _target_: remfx.models.DPTNetModel
     n_src: 1
-    bn_chan: 128
-    hid_size: 128
+    in_chan: 64
+    out_chan: 64
     chunk_size: 100
-    n_repeats: 6
+    n_repeats: 2
     fb_name: "free"
     kernel_size: 16
-    n_filters: 1
+    n_filters: 64
+    stride: 8
     sample_rate: ${sample_rate}
     num_bins: 1025

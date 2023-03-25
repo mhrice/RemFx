@@ -295,7 +295,7 @@ class EffectDataset(Dataset):
 
         # Up to max_kept_effects
         if self.max_kept_effects != -1:
-            num_kept_effects = int(torch.rand(1).item() * (self.max_kept_effects)) + 1
+            num_kept_effects = int(torch.rand(1).item() * (self.max_kept_effects))
         else:
             num_kept_effects = len(self.effects_to_keep)
         effect_indices = effect_indices[:num_kept_effects]

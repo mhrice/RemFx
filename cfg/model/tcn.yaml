@@ -13,7 +13,7 @@ model:
     noutputs: 1
     nblocks: 20
     channel_growth: 0
-    channel_width: 32
+    channel_width: 64
     kernel_size: 7
     stack_size: 10
     dilation_growth: 2

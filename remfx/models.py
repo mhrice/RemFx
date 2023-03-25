@@ -226,7 +226,7 @@ class DCUNetModel(nn.Module):
 
     def forward(self, batch):
         x, target = batch
-        output = self.model(x.squeeze(1))  # B x 1 x T
+        output = self.model(x.squeeze(1))  # B x T
         # Crop target to match output
         if output.shape[-1] < target.shape[-1]:
             target = causal_crop(target, output.shape[-1])
@@ -234,7 +234,7 @@ class DCUNetModel(nn.Module):
         return loss, output
 
     def sample(self, x: Tensor) -> Tensor:
-        output = self.model(x.squeeze(1))  # B x 1 x T
+        output = self.model(x.squeeze(1))  # B x T
         return output
 
 
