@@ -186,9 +186,9 @@ class EffectDataset(Dataset):
             + ["_"]
             + self.effects_to_remove
             + ["_"]
-            + num_kept_effects
+            + [str(x) for x in num_kept_effects]
             + ["_"]
-            + num_removed_effects
+            + [str(x) for x in num_removed_effects]
         )
         self.validate_effect_input()
         self.proc_root = self.render_root / "processed" / effects_string / self.mode
