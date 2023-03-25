@@ -20,16 +20,18 @@
 
 ## Experiments
 Training parameters can be configured in `cfg/exp/default.yaml`. Here are some descriptions
-- `num_kept_effects={min, max}` range of <b> Kept </b> effects to apply to each file. Inclusive.
-- `num_removed_effects={min, max}` range of <b> Removed </b> effects to apply to each file. Inclusive.
+- `num_kept_effects={[min, max]}` range of <b> Kept </b> effects to apply to each file. Inclusive.
+- `num_removed_effects={[min, max]}` range of <b> Removed </b> effects to apply to each file. Inclusive.
 - `model={model}` architecture to use (see 'Models')
-- `effects_to_keek={effect}` Effects to apply but not remove (see 'Effects')
-- `effects_to_remove={effect}` Effects to remove (see 'Effects')
+- `effects_to_keep={[effect]}` Effects to apply but not remove (see 'Effects')
+- `effects_to_remove={[effect]}` Effects to remove (see 'Effects')
 - `accelerator=null/'gpu'` Use GPU (1 device) (default: null)
 - `render_files=True/False` Render files. Disable to skip rendering stage (default: True)
 - `render_root={path/to/dir}`. Root directory to render files to (default: DATASET_ROOT)
 
 These can also be specified on the command line.
+see `cfg/exp/default.yaml` for an example.
+
 
 ## Models
 - `umx`
