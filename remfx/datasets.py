@@ -9,7 +9,7 @@ import random
 from tqdm import tqdm
 from pathlib import Path
 from remfx import effects
-from typing import Any, List, Dict, Tuple
+from typing import Any, List, Dict
 from torch.utils.data import Dataset, DataLoader
 from remfx.utils import select_random_chunk
 
@@ -175,8 +175,8 @@ class EffectDataset(Dataset):
         self.mode = mode
         self.num_kept_effects = num_kept_effects
         self.num_removed_effects = num_removed_effects
-        self.effects_to_keep = [] if effects_to_keep == None else effects_to_keep
-        self.effects_to_remove = [] if effects_to_remove == None else effects_to_remove
+        self.effects_to_keep = [] if effects_to_keep is None else effects_to_keep
+        self.effects_to_remove = [] if effects_to_remove is None else effects_to_remove
         self.normalize = effects.LoudnessNormalize(sample_rate, target_lufs_db=-20)
         self.effects = effect_modules
         self.shuffle_kept_effects = shuffle_kept_effects

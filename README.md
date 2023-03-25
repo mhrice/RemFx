@@ -20,8 +20,8 @@
 
 ## Experiments
 Training parameters can be configured in `cfg/exp/default.yaml`. Here are some descriptions
-- `num_kept_effects={min, max}` range of <b> Kept </b> effects to apply to each file.
-- `num_removed_effects={min, max}` range of <b> Removed </b> effects to apply to each file.
+- `num_kept_effects={min, max}` range of <b> Kept </b> effects to apply to each file. Inclusive.
+- `num_removed_effects={min, max}` range of <b> Removed </b> effects to apply to each file. Inclusive.
 - `model={model}` architecture to use (see 'Models')
 - `effects_to_keek={effect}` Effects to apply but not remove (see 'Effects')
 - `effects_to_remove={effect}` Effects to remove (see 'Effects')
