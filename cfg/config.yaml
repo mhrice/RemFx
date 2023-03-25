@@ -116,11 +116,11 @@ trainer:
   _target_: pytorch_lightning.Trainer
   precision: 32 # Precision used for tensors, default `32`
   min_epochs: 0
-  num_epochs: -1
+  max_epochs: -1
   enable_model_summary: False
   log_every_n_steps: 1 # Logs metrics every N batches
   accumulate_grad_batches: 1
   accelerator: ${accelerator}
   devices: 1
   gradient_clip_val: 10.0
-  num_steps: 50000
+  max_steps: 50000
