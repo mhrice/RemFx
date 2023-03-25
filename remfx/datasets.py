@@ -349,10 +349,6 @@ class EffectDataset(Dataset):
         # Normalize
         normalized_dry = self.normalize(dry)
         normalized_wet = self.normalize(wet)
-        print(dry_labels_tensor, wet_labels_tensor)
-        import pdb
-
-        pdb.set_trace()
         return normalized_dry, normalized_wet, dry_labels_tensor, wet_labels_tensor
 
 

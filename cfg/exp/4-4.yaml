@@ -14,7 +14,7 @@ log_audio: True
 num_kept_effects: [0,0] # [min, max]
 num_removed_effects: [0,4] # [min, max]
 shuffle_kept_effects: True
-shuffle_removed_effects: False
+shuffle_removed_effects: True
 num_classes: 5
 effects_to_keep:
 effects_to_remove:
