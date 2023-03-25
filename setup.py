@@ -47,7 +47,6 @@ setup(
         "pyloudnorm",
         "pedalboard",
         "frechet_audio_distance",
-        "ordered-set",
         "asteroid",
     ],
     include_package_data=True,

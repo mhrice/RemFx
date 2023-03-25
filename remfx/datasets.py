@@ -9,8 +9,7 @@ import random
 from tqdm import tqdm
 from pathlib import Path
 from remfx import effects
-from ordered_set import OrderedSet
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Tuple
 from torch.utils.data import Dataset, DataLoader
 from remfx.utils import select_random_chunk
 
@@ -155,10 +154,10 @@ class EffectDataset(Dataset):
         chunk_size: int = 262144,
         total_chunks: int = 1000,
         effect_modules: List[Dict[str, torch.nn.Module]] = None,
-        effects_to_use: List[str] = None,
+        effects_to_keep: List[str] = None,
         effects_to_remove: List[str] = None,
-        max_kept_effects: int = -1,
-        max_removed_effects: int = 1,
+        num_kept_effects: List[int] = [1, 5],
+        num_removed_effects: List[int] = [1, 5],
         shuffle_kept_effects: bool = True,
         shuffle_removed_effects: bool = False,
         render_files: bool = True,
@@ -174,16 +173,16 @@ class EffectDataset(Dataset):
         self.total_chunks = total_chunks
         self.sample_rate = sample_rate
         self.mode = mode
-        self.max_kept_effects = max_kept_effects
-        self.max_removed_effects = max_removed_effects
-        self.effects_to_use = effects_to_use
-        self.effects_to_remove = effects_to_remove
+        self.num_kept_effects = num_kept_effects
+        self.num_removed_effects = num_removed_effects
+        self.effects_to_keep = [] if effects_to_keep == None else effects_to_keep
+        self.effects_to_remove = [] if effects_to_remove == None else effects_to_remove
         self.normalize = effects.LoudnessNormalize(sample_rate, target_lufs_db=-20)
         self.effects = effect_modules
         self.shuffle_kept_effects = shuffle_kept_effects
         self.shuffle_removed_effects = shuffle_removed_effects
-        effects_string = "_".join(self.effects_to_use + ["_"] + self.effects_to_remove)
-        self.effects_to_keep = self.validate_effect_input()
+        effects_string = "_".join(self.effects_to_keep + ["_"] + self.effects_to_remove)
+        self.validate_effect_input()
         self.proc_root = self.render_root / "processed" / effects_string / self.mode
 
         self.files = locate_files(self.root, self.mode)
@@ -251,7 +250,7 @@ class EffectDataset(Dataset):
                     f"Effect {effect} not found in ALL_EFFECTS. "
                     f"Please choose from {ALL_EFFECTS}"
                 )
-        for effect in self.effects_to_use:
+        for effect in self.effects_to_keep:
             if effect not in self.effects.keys():
                 raise ValueError(
                     f"Effect {effect} not found in self.effects. "
@@ -263,27 +262,37 @@ class EffectDataset(Dataset):
                     f"Effect {effect} not found in self.effects. "
                     f"Please choose from {self.effects.keys()}"
                 )
-        kept_fx = list(
-            OrderedSet(self.effects_to_use) - OrderedSet(self.effects_to_remove)
-        )
         kept_str = "randomly" if self.shuffle_kept_effects else "in order"
-        rem_fx = self.effects_to_remove
         rem_str = "randomly" if self.shuffle_removed_effects else "in order"
-        if self.max_kept_effects == -1:
-            num_kept_str = len(kept_fx)
+        if self.num_kept_effects[0] > self.num_kept_effects[1]:
+            raise ValueError(
+                f"num_kept_effects must be a tuple of (min, max). "
+                f"Got {self.num_kept_effects}"
+            )
+        if self.num_kept_effects[0] == self.num_kept_effects[1]:
+            num_kept_str = f"{self.num_kept_effects[0]}"
         else:
-            num_kept_str = f"Up to {self.max_kept_effects}"
-        if self.max_removed_effects == -1:
-            num_rem_str = len(rem_fx)
+            num_kept_str = (
+                f"Between {self.num_kept_effects[0]}-{self.num_kept_effects[1]}"
+            )
+        if self.num_removed_effects[0] > self.num_removed_effects[1]:
+            raise ValueError(
+                f"num_removed_effects must be a tuple of (min, max). "
+                f"Got {self.num_removed_effects}"
+            )
+        if self.num_removed_effects[0] == self.num_removed_effects[1]:
+            num_rem_str = f"{self.num_removed_effects[0]}"
         else:
-            num_rem_str = f"Up to {self.max_removed_effects}"
-
+            num_rem_str = (
+                f"Between {self.num_removed_effects[0]}-{self.num_removed_effects[1]}"
+            )
+        rem_fx = self.effects_to_remove
+        kept_fx = self.effects_to_keep
         print(
             f"Effect Summary: \n"
             f"Apply kept effects: {kept_fx} ({num_kept_str}, chosen {kept_str}) -> Dry\n"
             f"Apply remove effects: {rem_fx} ({num_rem_str}, chosen {rem_str}) -> Wet\n"
         )
-        return kept_fx
 
     def process_effects(self, dry: torch.Tensor):
         # Apply Kept Effects
@@ -293,13 +302,10 @@ class EffectDataset(Dataset):
         else:
             effect_indices = torch.arange(len(self.effects_to_keep))
 
-        # Up to max_kept_effects
-        if self.max_kept_effects != -1:
-            num_kept_effects = int(torch.rand(1).item() * (self.max_kept_effects))
-        else:
-            num_kept_effects = len(self.effects_to_keep)
+        r1 = self.num_kept_effects[0]
+        r2 = self.num_kept_effects[1]
+        num_kept_effects = torch.round((r1 - r2) * torch.rand(1) + r2).int()
         effect_indices = effect_indices[:num_kept_effects]
-
         # Index in effect settings
         effect_names_to_apply = [self.effects_to_keep[i] for i in effect_indices]
         effects_to_apply = [self.effects[i] for i in effect_names_to_apply]
@@ -312,22 +318,19 @@ class EffectDataset(Dataset):
 
         # Apply effects_to_remove
         # Shuffle effects if specified
-        wet = torch.clone(dry)
         if self.shuffle_removed_effects:
             effect_indices = torch.randperm(len(self.effects_to_remove))
         else:
             effect_indices = torch.arange(len(self.effects_to_remove))
-        # Up to max_removed_effects
-        if self.max_removed_effects != -1:
-            num_removed_effects = int(torch.rand(1).item() * (self.max_removed_effects))
-        else:
-            num_removed_effects = len(self.effects_to_remove)
+        wet = torch.clone(dry)
+        r1 = self.num_removed_effects[0]
+        r2 = self.num_removed_effects[1]
+        num_removed_effects = torch.round((r1 - r2) * torch.rand(1) + r2).int()
         effect_indices = effect_indices[:num_removed_effects]
         # Index in effect settings
         effect_names_to_apply = [self.effects_to_remove[i] for i in effect_indices]
         effects_to_apply = [self.effects[i] for i in effect_names_to_apply]
         # Apply
-
         wet_labels = []
         for effect in effects_to_apply:
             # Normalize in-between effects
@@ -346,7 +349,10 @@ class EffectDataset(Dataset):
         # Normalize
         normalized_dry = self.normalize(dry)
         normalized_wet = self.normalize(wet)
+        print(dry_labels_tensor, wet_labels_tensor)
+        import pdb
 
+        pdb.set_trace()
         return normalized_dry, normalized_wet, dry_labels_tensor, wet_labels_tensor
 
 

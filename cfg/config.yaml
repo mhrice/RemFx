@@ -14,23 +14,18 @@ accelerator: null
 log_audio: True
 
 # Effects
-max_kept_effects: -1
-max_removed_effects: -1
+num_kept_effects: [2,2] # [min, max]
+num_removed_effects: [2,2] # [min, max]
 shuffle_kept_effects: True
 shuffle_removed_effects: False
 num_classes: 5
-effects_to_use:
-  - compressor
-  - distortion
+effects_to_keep:
   - reverb
   - chorus
   - delay
 effects_to_remove:
   - compressor
   - distortion
-  - reverb
-  - chorus
-  - delay
 
 callbacks:
   model_checkpoint:
@@ -62,10 +57,10 @@ datamodule:
     chunk_size: ${chunk_size}
     mode: "train"
     effect_modules: ${effects}
-    effects_to_use: ${effects_to_use}
+    effects_to_keep: ${effects_to_keep}
     effects_to_remove: ${effects_to_remove}
-    max_kept_effects: ${max_kept_effects}
-    max_removed_effects: ${max_removed_effects}
+    num_kept_effects: ${num_kept_effects}
+    num_removed_effects: ${num_removed_effects}
     shuffle_kept_effects: ${shuffle_kept_effects}
     shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
@@ -78,10 +73,10 @@ datamodule:
     chunk_size: ${chunk_size}
     mode: "val"
     effect_modules: ${effects}
-    effects_to_use: ${effects_to_use}
+    effects_to_keep: ${effects_to_keep}
     effects_to_remove: ${effects_to_remove}
-    max_kept_effects: ${max_kept_effects}
-    max_removed_effects: ${max_removed_effects}
+    num_kept_effects: ${num_kept_effects}
+    num_removed_effects: ${num_removed_effects}
     shuffle_kept_effects: ${shuffle_kept_effects}
     shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
@@ -94,10 +89,10 @@ datamodule:
     chunk_size: ${chunk_size}
     mode: "test"
     effect_modules: ${effects}
-    effects_to_use: ${effects_to_use}
+    effects_to_keep: ${effects_to_keep}
     effects_to_remove: ${effects_to_remove}
-    max_kept_effects: ${max_kept_effects}
-    max_removed_effects: ${max_removed_effects}
+    num_kept_effects: ${num_kept_effects}
+    num_removed_effects: ${num_removed_effects}
     shuffle_kept_effects: ${shuffle_kept_effects}
     shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
@@ -121,11 +116,11 @@ trainer:
   _target_: pytorch_lightning.Trainer
   precision: 32 # Precision used for tensors, default `32`
   min_epochs: 0
-  max_epochs: -1
+  num_epochs: -1
   enable_model_summary: False
   log_every_n_steps: 1 # Logs metrics every N batches
   accumulate_grad_batches: 1
   accelerator: ${accelerator}
   devices: 1
   gradient_clip_val: 10.0
-  max_steps: 50000
+  num_steps: 50000
