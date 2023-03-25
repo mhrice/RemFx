@@ -181,7 +181,15 @@ class EffectDataset(Dataset):
         self.effects = effect_modules
         self.shuffle_kept_effects = shuffle_kept_effects
         self.shuffle_removed_effects = shuffle_removed_effects
-        effects_string = "_".join(self.effects_to_keep + ["_"] + self.effects_to_remove)
+        effects_string = "_".join(
+            self.effects_to_keep
+            + ["_"]
+            + self.effects_to_remove
+            + ["_"]
+            + num_kept_effects
+            + ["_"]
+            + num_removed_effects
+        )
         self.validate_effect_input()
         self.proc_root = self.render_root / "processed" / effects_string / self.mode
 
