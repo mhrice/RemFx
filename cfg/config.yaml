@@ -53,9 +53,10 @@ callbacks:
     _target_: remfx.callbacks.MetricCallback
 
 datamodule:
-  _target_: remfx.datasets.VocalSetDatamodule
+  _target_: remfx.datasets.EffectDatamodule
   train_dataset:
-    _target_: remfx.datasets.VocalSet
+    _target_: remfx.datasets.EffectDataset
+    total_chunks: 8000
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}
@@ -70,7 +71,8 @@ datamodule:
     render_files: ${render_files}
     render_root: ${render_root}
   val_dataset:
-    _target_: remfx.datasets.VocalSet
+    _target_: remfx.datasets.EffectDataset
+    total_chunks: 1000
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}
@@ -85,7 +87,8 @@ datamodule:
     render_files: ${render_files}
     render_root: ${render_root}
   test_dataset:
-    _target_: remfx.datasets.VocalSet
+    _target_: remfx.datasets.EffectDataset
+    total_chunks: 1000
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}

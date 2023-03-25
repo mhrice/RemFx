@@ -2,7 +2,6 @@ import torch
 import torchmetrics
 import pytorch_lightning as pl
 from torch import Tensor, nn
-from torch.nn import functional as F
 from torchaudio.models import HDemucs
 from audio_diffusion_pytorch import DiffusionModel
 from auraloss.time import SISDRLoss
@@ -14,6 +13,7 @@ from remfx.dptnet import DPTNet_base
 from remfx.dcunet import RefineSpectrogramUnet
 from remfx.tcn import TCN
 from remfx.utils import causal_crop
+import asteroid
 
 
 class RemFX(pl.LightningModule):
@@ -85,6 +85,9 @@ class RemFX(pl.LightningModule):
         x, y, _, _ = batch  # x, y = (B, C, T), (B, C, T)
 
         loss, output = self.model((x, y))
+        # Crop target to match output
+        if output.shape[-1] < y.shape[-1]:
+            y = causal_crop(y, output.shape[-1])
         self.log(f"{mode}_loss", loss)
         # Metric logging
         with torch.no_grad():
@@ -195,7 +198,7 @@ class DiffusionGenerationModel(nn.Module):
 class DPTNetModel(nn.Module):
     def __init__(self, sample_rate, num_bins, **kwargs):
         super().__init__()
-        self.model = DPTNet_base(**kwargs)
+        self.model = asteroid.models.dptnet.DPTNet(**kwargs)
         self.num_bins = num_bins
         self.mrstftloss = MultiResolutionSTFTLoss(
             n_bins=self.num_bins, sample_rate=sample_rate
@@ -215,7 +218,7 @@ class DPTNetModel(nn.Module):
 class DCUNetModel(nn.Module):
     def __init__(self, sample_rate, num_bins, **kwargs):
         super().__init__()
-        self.model = RefineSpectrogramUnet(**kwargs)
+        self.model = asteroid.models.DCUNet(**kwargs)
         self.mrstftloss = MultiResolutionSTFTLoss(
             n_bins=num_bins, sample_rate=sample_rate
         )
@@ -223,7 +226,7 @@ class DCUNetModel(nn.Module):
 
     def forward(self, batch):
         x, target = batch
-        output = self.model(x.squeeze(1)).unsqueeze(1)  # B x 1 x T
+        output = self.model(x.squeeze(1))  # B x T
         # Crop target to match output
         if output.shape[-1] < target.shape[-1]:
             target = causal_crop(target, output.shape[-1])
@@ -231,7 +234,7 @@ class DCUNetModel(nn.Module):
         return loss, output
 
     def sample(self, x: Tensor) -> Tensor:
-        output = self.model(x.squeeze(1)).unsqueeze(1)  # B x 1 x T
+        output = self.model(x.squeeze(1))  # B x T
         return output
 
 

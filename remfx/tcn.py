@@ -128,10 +128,7 @@ class TCN(nn.Module):
         x_in = x
         for _, block in enumerate(self.process_blocks):
             x = block(x)
-        # y_hat = torch.tanh(self.output(x))
-        x_in = causal_crop(x_in, x.shape[-1])
-        gain_ln = self.output(x)
-        y_hat = torch.tanh(gain_ln * x_in)
+        y_hat = torch.tanh(self.output(x))
         return y_hat
 
     def compute_receptive_field(self):

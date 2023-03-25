@@ -4,13 +4,19 @@ effects:
   chorus:
       _target_: remfx.effects.RandomPedalboardChorus
       sample_rate: ${sample_rate}
+      min_rate_hz: 0.25
+      max_rate_hz: 1.5
+      min_feedback: 0.1
+      max_feedback: 0.4
       min_depth: 0.2
-      min_mix: 0.3
+      max_depth: 0.6
+      min_mix: 0.15
+      max_mix: 0.4
   distortion:
       _target_: remfx.effects.RandomPedalboardDistortion
       sample_rate: ${sample_rate}
-      min_drive_db: 10
-      max_drive_db: 50
+      min_drive_db: 7
+      max_drive_db: 25
   compressor:
       _target_: remfx.effects.RandomPedalboardCompressor
       sample_rate: ${sample_rate}
@@ -26,7 +32,7 @@ effects:
       min_damping: 0.2
       max_damping: 1.0
       min_wet_dry: 0.2
-      max_wet_dry: 0.8
+      max_wet_dry: 0.6
       min_width: 0.2
       max_width: 1.0
   delay:
@@ -35,6 +41,6 @@ effects:
       min_delay_seconds: 0.1
       max_delay_sconds: 1.0
       min_feedback: 0.05
-      max_feedback: 0.6
-      min_mix: 0.2
-      max_mix: 0.7
+      max_feedback: 0.3
+      min_mix: 0.1
+      max_mix: 0.35

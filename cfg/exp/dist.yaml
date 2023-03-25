@@ -7,11 +7,11 @@ sample_rate: 48000
 chunk_size: 262144 # 5.5s
 logs_dir: "./logs"
 render_files: True
-render_root: "./data"
-accelerator: null
+render_root: "/scratch/EffectSet"
+accelerator: "gpu"
 log_audio: True
 # Effects
-max_kept_effects: -1
+max_kept_effects: 5
 max_removed_effects: -1
 shuffle_kept_effects: True
 shuffle_removed_effects: False
@@ -23,11 +23,7 @@ effects_to_use:
   - chorus
   - delay
 effects_to_remove:
-  - compressor
   - distortion
-  - reverb
-  - chorus
-  - delay
 datamodule:
   batch_size: 16
   num_workers: 8

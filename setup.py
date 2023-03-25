@@ -48,6 +48,7 @@ setup(
         "pedalboard",
         "frechet_audio_distance",
         "ordered-set",
+        "asteroid",
     ],
     include_package_data=True,
     license="Apache License 2.0",
