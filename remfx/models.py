@@ -9,8 +9,6 @@ from auraloss.freq import MultiResolutionSTFTLoss
 from umx.openunmix.model import OpenUnmix, Separator
 
 from remfx.utils import FADLoss, spectrogram
-from remfx.dptnet import DPTNet_base
-from remfx.dcunet import RefineSpectrogramUnet
 from remfx.tcn import TCN
 from remfx.utils import causal_crop
 import asteroid
@@ -214,8 +212,6 @@ class DPTNetModel(nn.Module):
     def sample(self, x: Tensor) -> Tensor:
         return self.model(x.squeeze(1))
 
-
-class DCUNetModel(nn.Module):
     def __init__(self, sample_rate, num_bins, **kwargs):
         super().__init__()
         self.model = asteroid.models.DCUNet(**kwargs)
