@@ -15,7 +15,7 @@ effects:
   distortion:
       _target_: remfx.effects.RandomPedalboardDistortion
       sample_rate: ${sample_rate}
-      min_drive_db: 7
+      min_drive_db: 8
       max_drive_db: 25
   compressor:
       _target_: remfx.effects.RandomPedalboardCompressor

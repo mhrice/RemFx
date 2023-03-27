@@ -18,11 +18,11 @@ shuffle_removed_effects: False
 num_classes: 5
 effects_to_keep:
   - compressor
-  - reverb
-  - chorus
-  - delay
-effects_to_remove:
   - distortion
+  - delay
+  - reverb
+effects_to_remove:
+  - chorus
 datamodule:
   batch_size: 16
   num_workers: 8
