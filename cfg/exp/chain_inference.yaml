@@ -27,9 +27,9 @@ datamodule:
   batch_size: 16
   num_workers: 8
 ckpts:
-  RandomPedalboardChorus: "/Users/matthewrice/Developer/remfx/ckpts/demucs_5-5/last.ckpt"
-  RandomPedalboardDelay: "/Users/matthewrice/Developer/remfx/ckpts/demucs_5-5/last.ckpt"
-  RandomPedalboardDistortion: "/Users/matthewrice/Developer/remfx/ckpts/demucs_5-5/last.ckpt"
-  RandomPedalboardCompressor: "/Users/matthewrice/Developer/remfx/ckpts/demucs_5-5/last.ckpt"
-  RandomPedalboardReverb: "/Users/matthewrice/Developer/remfx/ckpts/demucs_5-5/last.ckpt"
+  RandomPedalboardChorus: "ckpts/chorus.ckpt"
+  RandomPedalboardDelay: "ckpts/delay.ckpt"
+  RandomPedalboardDistortion: "ckpts/distortion.ckpt"
+  RandomPedalboardCompressor: "ckpts/compressor.ckpt"
+  RandomPedalboardReverb: "ckpts/reverb.ckpt"
 num_bins: 1025

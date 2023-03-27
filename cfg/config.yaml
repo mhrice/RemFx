@@ -51,7 +51,7 @@ datamodule:
   _target_: remfx.datasets.EffectDatamodule
   train_dataset:
     _target_: remfx.datasets.EffectDataset
-    total_chunks: 80
+    total_chunks: 8000
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}
@@ -67,7 +67,7 @@ datamodule:
     render_root: ${render_root}
   val_dataset:
     _target_: remfx.datasets.EffectDataset
-    total_chunks: 10
+    total_chunks: 1000
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}
@@ -83,7 +83,7 @@ datamodule:
     render_root: ${render_root}
   test_dataset:
     _target_: remfx.datasets.EffectDataset
-    total_chunks: 10
+    total_chunks: 1000
     sample_rate: ${sample_rate}
     root: ${oc.env:DATASET_ROOT}
     chunk_size: ${chunk_size}
@@ -124,10 +124,3 @@ trainer:
   devices: 1
   gradient_clip_val: 10.0
   max_steps: 50000
-ckpts:
-  RandomPedalboardChorus: "/Users/matthewrice/Developer/remfx/ckpts/demucs_5-5/last.ckpt"
-  RandomPedalboardDelay: "/Users/matthewrice/Developer/remfx/ckpts/demucs_5-5/last.ckpt"
-  RandomPedalboardDistortion: "/Users/matthewrice/Developer/remfx/ckpts/demucs_5-5/last.ckpt"
-  RandomPedalboardCompressor: "/Users/matthewrice/Developer/remfx/ckpts/demucs_5-5/last.ckpt"
-  RandomPedalboardReverb: "/Users/matthewrice/Developer/remfx/ckpts/demucs_5-5/last.ckpt"
-num_bins: 1025
