@@ -11,7 +11,77 @@ from umx.openunmix.model import OpenUnmix, Separator
 from remfx.utils import FADLoss, spectrogram
 from remfx.tcn import TCN
 from remfx.utils import causal_crop
+from remfx import effects
 import asteroid
+
+ALL_EFFECTS = effects.Pedalboard_Effects
+
+
+class RemFXChainInference(pl.LightningModule):
+    def __init__(self, models, sample_rate, num_bins):
+        super().__init__()
+        self.model = models
+        self.mrstftloss = MultiResolutionSTFTLoss(
+            n_bins=num_bins, sample_rate=sample_rate
+        )
+        self.l1loss = nn.L1Loss()
+        self.metrics = nn.ModuleDict(
+            {
+                "SISDR": SISDRLoss(),
+                "STFT": MultiResolutionSTFTLoss(),
+                "FAD": FADLoss(sample_rate=sample_rate),
+            }
+        )
+
+    def forward(self, batch):
+        x, y, _, rem_fx_labels = batch
+        # Use chain of effects defined in config
+        effects = [
+            [ALL_EFFECTS[i] for i, effect in enumerate(effect_label) if effect == 1.0]
+            for effect_label in rem_fx_labels
+        ]
+        output = []
+        with torch.no_grad():
+            for elem, effect_chain in zip(x, effects):
+                elem = elem.unsqueeze(0)  # Add batch dim
+                for effect in effect_chain:
+                    # Get correct model based on effect name. This is a bit hacky
+                    # Then sample the model
+                    elem = self.model[effect.__name__].model.sample(elem)
+                output.append(elem.squeeze(0))
+        output = torch.stack(output)
+
+        loss = self.mrstftloss(output, y) + self.l1loss(output, y) * 100
+        return loss, output
+
+    def test_step(self, batch, batch_idx):
+        x, y, _, _ = batch  # x, y = (B, C, T), (B, C, T)
+
+        loss, output = self.forward(batch)
+        # Crop target to match output
+        if output.shape[-1] < y.shape[-1]:
+            y = causal_crop(y, output.shape[-1])
+        self.log("test_loss", loss)
+        # Metric logging
+        with torch.no_grad():
+            for metric in self.metrics:
+                # SISDR returns negative values, so negate them
+                if metric == "SISDR":
+                    negate = -1
+                else:
+                    negate = 1
+                self.log(
+                    f"test_{metric}",
+                    negate * self.metrics[metric](output, y),
+                    on_step=False,
+                    on_epoch=True,
+                    logger=True,
+                    prog_bar=True,
+                    sync_dist=True,
+                )
+
+    def sample(self, batch):
+        return self.forward(batch)[1]
 
 
 class RemFX(pl.LightningModule):
