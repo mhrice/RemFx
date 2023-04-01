@@ -52,7 +52,7 @@ class RemFXChainInference(pl.LightningModule):
         with torch.no_grad():
             for i, (elem, effects_list) in enumerate(zip(x, effects)):
                 elem = elem.unsqueeze(0)  # Add batch dim
-                effect_chain = [
+                effect_chain_idx = [
                     effects_order.index(effect.__name__) for effect in effects_list
                 ]
                 # log_wandb_audio_batch(
@@ -62,10 +62,9 @@ class RemFXChainInference(pl.LightningModule):
                 #     sampling_rate=self.sample_rate,
                 #     caption=effect_chain,
                 # )
-                effect_chain
-                for effect in effect_chain:
+                for idx in effect_chain_idx:
                     # Sample the model
-                    elem = self.model[effect].model.sample(elem)
+                    elem = self.model[effects_order[idx]].model.sample(elem)
                     # log_wandb_audio_batch(
                     #     logger=self.logger,
                     #     id=f"{i}_{effect}",

@@ -51,7 +51,13 @@ def main(cfg: DictConfig):
         models,
         sample_rate=cfg.sample_rate,
         num_bins=cfg.num_bins,
-        order=["Distortion", "Compressor", "Reverb", "Chorus", "Delay"],
+        effect_order=[
+            "RandomPedalboardDistortion",
+            "RandomPedalboardCompressor",
+            "RandomPedalboardReverb",
+            "RandomPedalboardChorus",
+            "RandomPedalboardDelay",
+        ],
     )
     trainer.test(model=inference_model, datamodule=datamodule)
 
