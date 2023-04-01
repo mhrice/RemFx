@@ -44,8 +44,6 @@ def main(cfg: DictConfig):
         callbacks=callbacks,
         logger=logger,
     )
-    summary = ModelSummary(model)
-    print(summary)
     trainer.test(model=model, datamodule=datamodule)
 
 

@@ -2,7 +2,6 @@ import pytorch_lightning as pl
 import hydra
 from omegaconf import DictConfig
 import remfx.utils as utils
-from pytorch_lightning.utilities.model_summary import ModelSummary
 import torch
 from remfx.models import RemFXChainInference
 
@@ -21,10 +20,9 @@ def main(cfg: DictConfig):
     for effect in cfg.ckpts:
         ckpt_path = cfg.ckpts[effect]
         model = hydra.utils.instantiate(cfg.model, _convert_="partial")
-        state_dict = torch.load(ckpt_path, map_location=torch.device("cpu"))[
-            "state_dict"
-        ]
+        state_dict = torch.load(ckpt_path)["state_dict"]
         model.load_state_dict(state_dict)
+        model.to(cfg.device)
         models[effect] = model
 
     callbacks = []
@@ -48,8 +46,6 @@ def main(cfg: DictConfig):
         callbacks=callbacks,
         logger=logger,
     )
-    summary = ModelSummary(model)
-    print(summary)
 
     inference_model = RemFXChainInference(
         models, sample_rate=cfg.sample_rate, num_bins=cfg.num_bins

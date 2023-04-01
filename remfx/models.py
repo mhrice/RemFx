@@ -11,6 +11,7 @@ from umx.openunmix.model import OpenUnmix, Separator
 from remfx.utils import FADLoss, spectrogram
 from remfx.tcn import TCN
 from remfx.utils import causal_crop
+from remfx.callbacks import log_wandb_audio_batch
 from remfx import effects
 import asteroid
 
@@ -42,12 +43,26 @@ class RemFXChainInference(pl.LightningModule):
         ]
         output = []
         with torch.no_grad():
-            for elem, effect_chain in zip(x, effects):
+            for i, (elem, effect_chain) in enumerate(zip(x, effects)):
                 elem = elem.unsqueeze(0)  # Add batch dim
+                log_wandb_audio_batch(
+                    logger=self.logger,
+                    id=f"{i}_Before",
+                    samples=elem.cpu(),
+                    sampling_rate=self.sample_rate,
+                    caption=effect_chain,
+                )
                 for effect in effect_chain:
                     # Get correct model based on effect name. This is a bit hacky
                     # Then sample the model
                     elem = self.model[effect.__name__].model.sample(elem)
+                    log_wandb_audio_batch(
+                        logger=self.logger,
+                        id=f"{i}_{effect}",
+                        samples=elem.cpu(),
+                        sampling_rate=self.sample_rate,
+                        caption=effect_chain,
+                    )
                 output.append(elem.squeeze(0))
         output = torch.stack(output)
 
