@@ -81,8 +81,8 @@ class RemFXChainInference(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         x, y, _, _ = batch  # x, y = (B, C, T), (B, C, T)
         # Random order
-        order = random.shuffle(self.effect_order)
-        loss, output = self.forward(batch, order=order)
+        random.shuffle(self.effect_order)
+        loss, output = self.forward(batch, order=self.effect_order)
         # Crop target to match output
         if output.shape[-1] < y.shape[-1]:
             y = causal_crop(y, output.shape[-1])
@@ -96,7 +96,7 @@ class RemFXChainInference(pl.LightningModule):
                 else:
                     negate = 1
                 self.log(
-                    f"test_{metric}_" + "".join(order),
+                    f"test_{metric}_" + "".join(self.effect_order),
                     negate * self.metrics[metric](output, y),
                     on_step=False,
                     on_epoch=True,
