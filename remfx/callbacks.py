@@ -4,7 +4,6 @@ from einops import rearrange
 import torch
 import wandb
 from torch import Tensor
-from remfx.models import RemFXChainInference
 
 
 class AudioCallback(Callback):
@@ -47,6 +46,9 @@ class AudioCallback(Callback):
         # Only run on first batch
         if batch_idx == 0 and self.log_audio:
             with torch.no_grad():
+                # Avoids circular import
+                from remfx.models import RemFXChainInference
+
                 if type(pl_module) == RemFXChainInference:
                     y = pl_module.sample(batch)
                 else:

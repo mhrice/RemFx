@@ -6,7 +6,7 @@ seed: 12345
 sample_rate: 48000
 chunk_size: 262144 # 5.5s
 logs_dir: "./logs"
-render_files: True
+render_files: False
 render_root: "/scratch/EffectSet"
 accelerator: "gpu"
 log_audio: True
@@ -26,10 +26,12 @@ effects_to_remove:
 datamodule:
   batch_size: 16
   num_workers: 8
+  train_dataset: None
+  val_dataset: None
 ckpts:
-  RandomPedalboardChorus: "ckpts/chorus.ckpt"
-  RandomPedalboardDelay: "ckpts/delay.ckpt"
   RandomPedalboardDistortion: "ckpts/distortion.ckpt"
   RandomPedalboardCompressor: "ckpts/compressor.ckpt"
   RandomPedalboardReverb: "ckpts/reverb.ckpt"
+  RandomPedalboardChorus: "ckpts/chorus.ckpt"
+  RandomPedalboardDelay: "ckpts/delay.ckpt"
 num_bins: 1025

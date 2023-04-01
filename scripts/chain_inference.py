@@ -22,7 +22,7 @@ def main(cfg: DictConfig):
         model = hydra.utils.instantiate(cfg.model, _convert_="partial")
         state_dict = torch.load(ckpt_path)["state_dict"]
         model.load_state_dict(state_dict)
-        model.to(cfg.device)
+        model.to("cuda" if torch.cuda.is_available() else "cpu")
         models[effect] = model
 
     callbacks = []
@@ -48,7 +48,10 @@ def main(cfg: DictConfig):
     )
 
     inference_model = RemFXChainInference(
-        models, sample_rate=cfg.sample_rate, num_bins=cfg.num_bins
+        models,
+        sample_rate=cfg.sample_rate,
+        num_bins=cfg.num_bins,
+        order=["Distortion", "Compressor", "Reverb", "Chorus", "Delay"],
     )
     trainer.test(model=inference_model, datamodule=datamodule)
 
