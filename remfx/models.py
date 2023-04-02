@@ -96,7 +96,8 @@ class RemFXChainInference(pl.LightningModule):
                 else:
                     negate = 1
                 self.log(
-                    f"test_{metric}_" + "".join(self.effect_order),
+                    f"test_{metric}_"
+                    + "".join(self.effect_order).replace("RandomPedalboard", ""),
                     negate * self.metrics[metric](output, y),
                     on_step=False,
                     on_epoch=True,
@@ -306,27 +307,6 @@ class DPTNetModel(nn.Module):
 
     def sample(self, x: Tensor) -> Tensor:
         return self.model(x.squeeze(1))
-
-    def __init__(self, sample_rate, num_bins, **kwargs):
-        super().__init__()
-        self.model = asteroid.models.DCUNet(**kwargs)
-        self.mrstftloss = MultiResolutionSTFTLoss(
-            n_bins=num_bins, sample_rate=sample_rate
-        )
-        self.l1loss = nn.L1Loss()
-
-    def forward(self, batch):
-        x, target = batch
-        output = self.model(x.squeeze(1))  # B x T
-        # Crop target to match output
-        if output.shape[-1] < target.shape[-1]:
-            target = causal_crop(target, output.shape[-1])
-        loss = self.mrstftloss(output, target) + self.l1loss(output, target) * 100
-        return loss, output
-
-    def sample(self, x: Tensor) -> Tensor:
-        output = self.model(x.squeeze(1))  # B x T
-        return output
 
 
 class TCNModel(nn.Module):

@@ -1,0 +1,41 @@
+# @package _global_
+defaults:
+  - override /model: demucs
+  - override /effects: all
+seed: 12345
+sample_rate: 48000
+chunk_size: 262144 # 5.5s
+logs_dir: "./logs"
+render_files: False
+render_root: "/scratch/EffectSet"
+accelerator: "gpu"
+log_audio: True
+# Effects
+num_kept_effects: [0,0] # [min, max]
+num_removed_effects: [0,5] # [min, max]
+shuffle_kept_effects: True
+shuffle_removed_effects: True
+num_classes: 5
+effects_to_keep:
+effects_to_remove:
+  - distortion
+  - compressor
+  - reverb
+  - chorus
+  - delay
+datamodule:
+  batch_size: 16
+  num_workers: 8
+  train_dataset: None
+  val_dataset: None
+  test_dataset:
+    _target_: remfx.datasets.InferenceDataset
+    root: "./data/fx-examples"
+    sample_rate: ${sample_rate}
+ckpts:
+  RandomPedalboardDistortion: "ckpts/distortion.ckpt"
+  RandomPedalboardCompressor: "ckpts/compressor.ckpt"
+  RandomPedalboardReverb: "ckpts/reverb.ckpt"
+  RandomPedalboardChorus: "ckpts/chorus.ckpt"
+  RandomPedalboardDelay: "ckpts/delay.ckpt"
+num_bins: 1025
