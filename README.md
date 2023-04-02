@@ -47,6 +47,23 @@ see `cfg/exp/default.yaml` for an example.
 - `reverb`
 - `delay`
 
+## Run inference on directory
+Assumes directory is structured as
+- root
+    - clean
+        - file1.wav
+        - file2.wav
+        - file3.wav
+    - effected
+        - file1.wav
+        - file2.wav
+        - file3.wav
+
+Change root path in `shell_vars.sh` and `source shell_vars.sh`
+
+`python scripts/chain_inference.py +exp=chain_inference_custom`
+
+
 ## Misc.
 By default, files are rendered to `input_dir / processed / {string_of_effects} / {train|val|test}`.
 

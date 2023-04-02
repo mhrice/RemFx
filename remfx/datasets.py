@@ -361,14 +361,14 @@ class EffectDataset(Dataset):
 
 
 class InferenceDataset(Dataset):
-    def __init__(self, root: str, sample_rate: int):
+    def __init__(self, root: str, sample_rate: int, **kwargs):
         self.root = Path(root)
         self.sample_rate = sample_rate
-        self.clean_paths = list(self.root.glob("clean/*.wav"))
-        self.effected_paths = list(self.root.glob("effected/*.wav"))
+        self.clean_paths = sorted(list(self.root.glob("clean/*.wav")))
+        self.effected_paths = sorted(list(self.root.glob("effected/*.wav")))
 
     def __len__(self) -> int:
-        return len(self.audio_paths)
+        return len(self.clean_paths)
 
     def __getitem__(self, idx: int) -> torch.Tensor:
         clean_path = self.clean_paths[idx]
@@ -379,21 +379,20 @@ class InferenceDataset(Dataset):
         effected = torchaudio.functional.resample(effected_audio, sr, self.sample_rate)
 
         # Sum to mono
-        clean = torch.sum(clean, dim=0)
-        effected = torch.sum(effected, dim=0)
+        clean = torch.sum(clean, dim=0, keepdim=True)
+        effected = torch.sum(effected, dim=0, keepdim=True)
 
         # Pad or trim effected to clean
-        if len(clean) > len(effected):
-            effected = torch.nn.functional.pad(
-                effected, (0, len(clean) - len(effected))
-            )
-        elif len(effected) > len(clean):
-            effected = effected[: len(clean)]
+        if effected.shape[1] > clean.shape[1]:
+            effected = effected[:, : clean.shape[1]]
+        elif effected.shape[1] < clean.shape[1]:
+            pad_size = clean.shape[1] - effected.shape[1]
+            effected = torch.nn.functional.pad(effected, (0, pad_size))
 
         dry_labels_tensor = torch.zeros(len(ALL_EFFECTS))
         wet_labels_tensor = torch.ones(len(ALL_EFFECTS))
 
-        return clean, effected, dry_labels_tensor, wet_labels_tensor
+        return effected, clean, dry_labels_tensor, wet_labels_tensor
 
 
 class EffectDatamodule(pl.LightningDataModule):

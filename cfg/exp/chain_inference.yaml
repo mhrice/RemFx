@@ -28,10 +28,17 @@ datamodule:
   num_workers: 8
   train_dataset: None
   val_dataset: None
+
 ckpts:
   RandomPedalboardDistortion: "ckpts/distortion.ckpt"
   RandomPedalboardCompressor: "ckpts/compressor.ckpt"
   RandomPedalboardReverb: "ckpts/reverb.ckpt"
   RandomPedalboardChorus: "ckpts/chorus.ckpt"
   RandomPedalboardDelay: "ckpts/delay.ckpt"
+inference_effects_ordering:
+  - "RandomPedalboardDistortion"
+  - "RandomPedalboardCompressor"
+  - "RandomPedalboardReverb"
+  - "RandomPedalboardChorus"
+  - "RandomPedalboardDelay"
 num_bins: 1025
