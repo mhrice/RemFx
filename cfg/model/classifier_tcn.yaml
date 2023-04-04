@@ -1,0 +1,23 @@
+# @package _global_
+model:
+  _target_: remfx.models.FXClassifier
+  lr: 1e-4
+  lr_weight_decay: 1e-3
+  sample_rate: ${sample_rate}
+  network:
+    _target_: remfx.tcn.TCN
+    ninputs: 1
+    noutputs: 1
+    nblocks: 20
+    channel_growth: 0
+    channel_width: 64
+    kernel_size: 7
+    stack_size: 10
+    dilation_growth: 2
+    condition: False
+    latent_dim: 2
+    norm_type: "identity"
+    causal: False
+    estimate_loudness: False
+
+
