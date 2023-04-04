@@ -24,11 +24,14 @@ effects_to_remove:
   - chorus
   - delay
 datamodule:
-  batch_size: 16
+  batch_size: 1
   num_workers: 8
   train_dataset: None
   val_dataset: None
-
+  test_dataset:
+    _target_: remfx.datasets.InferenceDataset
+    root: ${oc.env:DATASET_ROOT}
+    sample_rate: ${sample_rate}
 ckpts:
   RandomPedalboardDistortion: "ckpts/distortion.ckpt"
   RandomPedalboardCompressor: "ckpts/compressor.ckpt"
