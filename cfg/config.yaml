@@ -44,8 +44,6 @@ callbacks:
     _target_: remfx.callbacks.AudioCallback
     sample_rate: ${sample_rate}
     log_audio: ${log_audio}
-  metric_logging:
-    _target_: remfx.callbacks.MetricCallback
 
 datamodule:
   _target_: remfx.datasets.EffectDatamodule
