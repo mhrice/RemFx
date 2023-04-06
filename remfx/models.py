@@ -188,8 +188,9 @@ class RemFX(pl.LightningModule):
 
         loss, output = self.model((x, y))
         # Crop target to match output
+        target = y
         if output.shape[-1] < y.shape[-1]:
-            y = causal_crop(y, output.shape[-1])
+            target = causal_crop(y, output.shape[-1])
         self.log(f"{mode}_loss", loss)
         # Metric logging
         with torch.no_grad():
@@ -204,13 +205,14 @@ class RemFX(pl.LightningModule):
                     continue
                 self.log(
                     f"{mode}_{metric}",
-                    negate * self.metrics[metric](output, y),
+                    negate * self.metrics[metric](output, target),
                     on_step=False,
                     on_epoch=True,
                     logger=True,
                     prog_bar=True,
                     sync_dist=True,
                 )
+
                 self.log(
                     f"Input_{metric}",
                     negate * self.metrics[metric](x, y),
