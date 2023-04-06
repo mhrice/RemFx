@@ -20,9 +20,10 @@ def main(cfg: DictConfig):
     for effect in cfg.ckpts:
         ckpt_path = cfg.ckpts[effect]
         model = hydra.utils.instantiate(cfg.model, _convert_="partial")
-        state_dict = torch.load(ckpt_path)["state_dict"]
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        state_dict = torch.load(ckpt_path, map_location=device)["state_dict"]
         model.load_state_dict(state_dict)
-        model.to("cuda" if torch.cuda.is_available() else "cpu")
+        model.to(device)
         models[effect] = model
 
     callbacks = []

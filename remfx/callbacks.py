@@ -71,48 +71,6 @@ class AudioCallback(Callback):
         self.on_validation_batch_start(*args)
 
 
-class MetricCallback(Callback):
-    def on_validation_batch_start(
-        self, trainer, pl_module, batch, batch_idx, dataloader_idx
-    ):
-        x, target, _, _ = batch
-        # Log Input Metrics
-        for metric in pl_module.metrics:
-            # SISDR returns negative values, so negate them
-            if metric == "SISDR":
-                negate = -1
-            else:
-                negate = 1
-            # Only Log FAD on test set
-            if metric == "FAD":
-                continue
-            pl_module.log(
-                f"Input_{metric}",
-                negate * pl_module.metrics[metric](x, target),
-                on_step=False,
-                on_epoch=True,
-                logger=True,
-                prog_bar=True,
-                sync_dist=True,
-            )
-
-    def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        self.on_validation_batch_start(
-            trainer, pl_module, batch, batch_idx, dataloader_idx
-        )
-        # Log FAD
-        x, target, _, _ = batch
-        pl_module.log(
-            "Input_FAD",
-            pl_module.metrics["FAD"](x, target),
-            on_step=False,
-            on_epoch=True,
-            logger=True,
-            prog_bar=True,
-            sync_dist=True,
-        )
-
-
 def log_wandb_audio_batch(
     logger: pl.loggers.WandbLogger,
     id: str,
