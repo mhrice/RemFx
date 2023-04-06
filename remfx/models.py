@@ -14,7 +14,6 @@ from remfx.utils import causal_crop
 from remfx.callbacks import log_wandb_audio_batch
 from remfx import effects
 import asteroid
-import random
 
 ALL_EFFECTS = effects.Pedalboard_Effects
 
@@ -52,31 +51,36 @@ class RemFXChainInference(pl.LightningModule):
         with torch.no_grad():
             for i, (elem, effects_list) in enumerate(zip(x, effects)):
                 elem = elem.unsqueeze(0)  # Add batch dim
-                # effect_chain_idx = [
-                #     effects_order.index(effect.__name__) for effect in effects_list
-                # ]
+                # Get the correct effect by search for names in effects_order
                 effect_list_names = [effect.__name__ for effect in effects_list]
                 effects = [
                     effect for effect in effects_order if effect in effect_list_names
                 ]
 
-                # log_wandb_audio_batch(
-                #     logger=self.logger,
-                #     id=f"{batch_idx}_{i}_Before",
-                #     samples=elem.cpu(),
-                #     sampling_rate=self.sample_rate,
-                #     caption=effects,
-                # )
+                log_wandb_audio_batch(
+                    logger=self.logger,
+                    id=f"{i}_Before",
+                    samples=elem.cpu(),
+                    sampling_rate=self.sample_rate,
+                    caption=effects,
+                )
                 for effect in effects:
                     # Sample the model
                     elem = self.model[effect].model.sample(elem)
-                    # log_wandb_audio_batch(
-                    #     logger=self.logger,
-                    #     id=f"{batch_idx}_{i}_{effect}",
-                    #     samples=elem.cpu(),
-                    #     sampling_rate=self.sample_rate,
-                    #     caption=effects,
-                    # )
+                    log_wandb_audio_batch(
+                        logger=self.logger,
+                        id=f"{i}_{effect}",
+                        samples=elem.cpu(),
+                        sampling_rate=self.sample_rate,
+                        caption=effects,
+                    )
+                log_wandb_audio_batch(
+                    logger=self.logger,
+                    id=f"{i}_After",
+                    samples=elem.cpu(),
+                    sampling_rate=self.sample_rate,
+                    caption=effects,
+                )
                 output.append(elem.squeeze(0))
         output = torch.stack(output)
 
@@ -111,7 +115,7 @@ class RemFXChainInference(pl.LightningModule):
                 )
 
     def sample(self, batch):
-        return self.forward(batch)[1]
+        return self.forward(batch, 0)[1]
 
 
 class RemFX(pl.LightningModule):
@@ -201,6 +205,15 @@ class RemFX(pl.LightningModule):
                 self.log(
                     f"{mode}_{metric}",
                     negate * self.metrics[metric](output, y),
+                    on_step=False,
+                    on_epoch=True,
+                    logger=True,
+                    prog_bar=True,
+                    sync_dist=True,
+                )
+                self.log(
+                    f"Input_{metric}",
+                    negate * self.metrics[metric](x, y),
                     on_step=False,
                     on_epoch=True,
                     logger=True,
