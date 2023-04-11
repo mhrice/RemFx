@@ -30,7 +30,6 @@ class RemFXChainInference(pl.LightningModule):
             {
                 "SISDR": SISDRLoss(),
                 "STFT": MultiResolutionSTFTLoss(),
-                "FAD": FADLoss(sample_rate=sample_rate),
             }
         )
         self.sample_rate = sample_rate
@@ -141,7 +140,6 @@ class RemFX(pl.LightningModule):
             {
                 "SISDR": SISDRLoss(),
                 "STFT": MultiResolutionSTFTLoss(),
-                "FAD": FADLoss(sample_rate=sample_rate),
             }
         )
         # Log first batch metrics input vs output only once
@@ -222,6 +220,7 @@ class RemFX(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
+
         return loss
 
 

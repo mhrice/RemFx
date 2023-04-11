@@ -1,0 +1,24 @@
+# @package _global_
+defaults:
+  - override /model: demucs
+  - override /effects: all
+seed: 12345
+sample_rate: 48000
+chunk_size: 262144 # 5.5s
+logs_dir: "./logs"
+render_files: True
+render_root: "/scratch/EffectSet"
+accelerator: "gpu"
+log_audio: True
+# Effects
+num_kept_effects: [0,0] # [min, max]
+num_removed_effects: [1,1] # [min, max]
+shuffle_kept_effects: True
+shuffle_removed_effects: False
+num_classes: 1
+effects_to_keep:
+effects_to_remove:
+  - delay
+datamodule:
+  batch_size: 16
+  num_workers: 8
