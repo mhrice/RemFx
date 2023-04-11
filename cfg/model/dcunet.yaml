@@ -9,7 +9,7 @@ model:
   sample_rate: ${sample_rate}
   network:
     _target_: remfx.models.DCUNetModel
-    architecture: "DCUNet-10"
+    architecture: "Large-DCUNet-20"
     stft_kernel_size: 512
     fix_length_mode: "pad"
     sample_rate: ${sample_rate}
