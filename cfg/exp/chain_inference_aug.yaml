@@ -28,11 +28,11 @@ datamodule:
   num_workers: 8
 
 ckpts:
-  RandomPedalboardDistortion: "ckpts/distortion.ckpt"
-  RandomPedalboardCompressor: "ckpts/compressor.ckpt"
-  RandomPedalboardReverb: "ckpts/reverb.ckpt"
-  RandomPedalboardChorus: "ckpts/chorus.ckpt"
-  RandomPedalboardDelay: "ckpts/delay.ckpt"
+  RandomPedalboardDistortion: "ckpts/distortion_aug.ckpt"
+  RandomPedalboardCompressor: "ckpts/compressor_aug.ckpt"
+  RandomPedalboardReverb: "ckpts/reverb_aug.ckpt"
+  RandomPedalboardChorus: "ckpts/chorus_aug.ckpt"
+  RandomPedalboardDelay: "ckpts/delay_aug.ckpt"
 inference_effects_ordering:
   - "RandomPedalboardDistortion"
   - "RandomPedalboardCompressor"
