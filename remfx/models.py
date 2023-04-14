@@ -43,7 +43,7 @@ class RemFXChainInference(pl.LightningModule):
             effects_order = order
         else:
             effects_order = self.effect_order
-        effects = [
+        effects_present = [
             [ALL_EFFECTS[i] for i, effect in enumerate(effect_label) if effect == 1.0]
             for effect_label in rem_fx_labels
         ]
@@ -56,7 +56,7 @@ class RemFXChainInference(pl.LightningModule):
             id="input_effected_audio",
             samples=input_samples.cpu(),
             sampling_rate=self.sample_rate,
-            caption=effects,
+            caption="Input Data",
         )
         log_wandb_audio_batch(
             logger=self.logger,
@@ -66,7 +66,7 @@ class RemFXChainInference(pl.LightningModule):
             caption="Target Data",
         )
         with torch.no_grad():
-            for i, (elem, effects_list) in enumerate(zip(x, effects)):
+            for i, (elem, effects_list) in enumerate(zip(x, effects_present)):
                 elem = elem.unsqueeze(0)  # Add batch dim
                 # Get the correct effect by search for names in effects_order
                 effect_list_names = [effect.__name__ for effect in effects_list]

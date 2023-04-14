@@ -16,6 +16,10 @@ def main(cfg: DictConfig):
     log.info(f"Instantiating model <{cfg.model._target_}>.")
     model = hydra.utils.instantiate(cfg.model, _convert_="partial")
 
+    if "ckpt_path" in cfg:
+        log.info(f"Loading checkpoint from <{cfg.ckpt_path}>.")
+        model = model.load_from_checkpoint(cfg.ckpt_path)
+
     # Init all callbacks
     callbacks = []
     if "callbacks" in cfg:
