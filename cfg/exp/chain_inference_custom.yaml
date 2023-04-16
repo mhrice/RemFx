@@ -31,12 +31,37 @@ datamodule:
     _target_: remfx.datasets.InferenceDataset
     root: ${oc.env:DATASET_ROOT}
     sample_rate: ${sample_rate}
+dcunet:
+  _target_: remfx.models.RemFX
+  lr: 1e-4
+  lr_beta1: 0.95
+  lr_beta2: 0.999
+  lr_eps: 1e-6
+  lr_weight_decay: 1e-3
+  sample_rate: ${sample_rate}
+  network:
+    _target_: remfx.models.DCUNetModel
+    architecture: "Large-DCUNet-20"
+    stft_kernel_size: 512
+    fix_length_mode: "pad"
+    sample_rate: ${sample_rate}
+    num_bins: 1025
 ckpts:
-  RandomPedalboardDistortion: "ckpts/demucs_distortion_aug.ckpt"
-  RandomPedalboardCompressor: "ckpts/demucs_compressor_aug.ckpt"
-  RandomPedalboardReverb: "ckpts/demucs_reverb_aug.ckpt"
-  RandomPedalboardChorus: "ckpts/demucs_chorus_aug.ckpt"
-  RandomPedalboardDelay: "ckpts/demucs_delay_aug.ckpt"
+  RandomPedalboardDistortion:
+    model: ${model}
+    ckpt_path: "ckpts/demucs_distortion_aug.ckpt"
+  RandomPedalboardCompressor:
+    model: ${model}
+    ckpt_path: "ckpts/demucs_compressor_aug.ckpt"
+  RandomPedalboardReverb:
+    model: ${dcunet}
+    ckpt_path: "ckpts/dcunet_reverb_aug.ckpt"
+  RandomPedalboardChorus:
+    model: ${dcunet}
+    ckpt_path: "ckpts/dcunet_chorus_aug.ckpt"
+  RandomPedalboardDelay:
+    model: ${dcunet}
+    ckpt_path: "ckpts/dcunet_delay_aug.ckpt"
 inference_effects_ordering:
   - "RandomPedalboardDistortion"
   - "RandomPedalboardCompressor"

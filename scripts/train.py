@@ -18,7 +18,16 @@ def main(cfg: DictConfig):
 
     if "ckpt_path" in cfg:
         log.info(f"Loading checkpoint from <{cfg.ckpt_path}>.")
-        model = model.load_from_checkpoint(cfg.ckpt_path)
+        model.load_from_checkpoint(
+            cfg.ckpt_path,
+            lr=model.lr,
+            lr_beta1=model.lr_beta1,
+            lr_beta2=model.lr_beta2,
+            lr_eps=model.lr_eps,
+            lr_weight_decay=model.lr_weight_decay,
+            sample_rate=model.sample_rate,
+            network=model.model,
+        )
 
     # Init all callbacks
     callbacks = []

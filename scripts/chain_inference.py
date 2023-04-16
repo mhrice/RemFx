@@ -18,8 +18,8 @@ def main(cfg: DictConfig):
     log.info(f"Instantiating model <{cfg.model._target_}>.")
     models = {}
     for effect in cfg.ckpts:
-        ckpt_path = cfg.ckpts[effect]
-        model = hydra.utils.instantiate(cfg.model, _convert_="partial")
+        model = hydra.utils.instantiate(cfg.ckpts[effect].model, _convert_="partial")
+        ckpt_path = cfg.ckpts[effect].ckpt_path
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         state_dict = torch.load(ckpt_path, map_location=device)["state_dict"]
         model.load_state_dict(state_dict)

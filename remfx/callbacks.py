@@ -4,6 +4,9 @@ from einops import rearrange
 import torch
 import wandb
 from torch import Tensor
+from remfx import effects
+
+ALL_EFFECTS = effects.Pedalboard_Effects
 
 
 class AudioCallback(Callback):
@@ -42,7 +45,7 @@ class AudioCallback(Callback):
     def on_validation_batch_start(
         self, trainer, pl_module, batch, batch_idx, dataloader_idx
     ):
-        x, target, _, _ = batch
+        x, target, _, rem_fx_labels = batch
         # Only run on first batch
         if batch_idx == 0 and self.log_audio:
             with torch.no_grad():
@@ -51,6 +54,19 @@ class AudioCallback(Callback):
 
                 if type(pl_module) == RemFXChainInference:
                     y = pl_module.sample(batch)
+                    effects_present_name = [
+                        [
+                            ALL_EFFECTS[i].__name__.replace("RandomPedalboard", "")
+                            for i, effect in enumerate(effect_label)
+                            if effect == 1.0
+                        ]
+                        for effect_label in rem_fx_labels
+                    ]
+                    for i, label in enumerate(effects_present_name):
+                        self.log(f"{'_'.join(label)}", 0.0)
+                        # self.log(f"{effects}_{i}", label)
+                        # trainer.logger.experiment.log(
+                        # {f"effects_{i}": f"{'_'.join(label)}"}
                 else:
                     y = pl_module.model.sample(x)
             # Concat samples together for easier viewing in dashboard
