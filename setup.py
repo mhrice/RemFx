@@ -1,8 +1,8 @@
 from pathlib import Path
 from setuptools import setup, find_packages
 
-NAME = "REMFX"
-DESCRIPTION = ""
+NAME = "remfx"
+DESCRIPTION = "Universal audio effect removal"
 URL = ""
 EMAIL = "m.rice@se22.qmul.ac.uk"
 AUTHOR = "Matthew Rice"

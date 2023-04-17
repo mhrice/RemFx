@@ -1,0 +1,59 @@
+# @package _global_
+defaults:
+  - override /model: demucs
+  - override /effects: all
+seed: 12345
+sample_rate: 48000
+chunk_size: 262144 # 5.5s
+logs_dir: "./logs"
+render_files: True
+render_root: "/scratch/EffectSet_cjs"
+accelerator: "gpu"
+log_audio: False
+# Effects
+num_kept_effects: [0,0] # [min, max]
+num_removed_effects: [0,5] # [min, max]
+shuffle_kept_effects: True
+shuffle_removed_effects: True
+num_classes: 5
+effects_to_keep:
+effects_to_remove:
+  - distortion
+  - compressor
+  - reverb
+  - chorus
+  - delay
+datamodule:
+  batch_size: 64
+  num_workers: 8
+
+callbacks:
+  model_checkpoint:
+    _target_: pytorch_lightning.callbacks.ModelCheckpoint
+    monitor: "valid_f1_avg_epoch"   # name of the logged metric which determines when model is improving
+    save_top_k: 1           # save k best models (determined by above metric)
+    save_last: True         # additionaly always save model from last epoch
+    mode: "max"             # can be "max" or "min"
+    verbose: True
+    dirpath: ${logs_dir}/ckpts/${now:%Y-%m-%d-%H-%M-%S}
+    filename: '{epoch:02d}-{valid_f1_avg_epoch:.3f}'
+  learning_rate_monitor:
+    _target_: pytorch_lightning.callbacks.LearningRateMonitor
+    logging_interval: "step"
+  #audio_logging:
+  #  _target_: remfx.callbacks.AudioCallback
+  #  sample_rate: ${sample_rate}
+  #  log_audio: ${log_audio}
+
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  precision: 32 # Precision used for tensors, default `32`
+  min_epochs: 0
+  max_epochs: -1
+  log_every_n_steps: 1 # Logs metrics every N batches
+  accumulate_grad_batches: 1
+  accelerator: ${accelerator}
+  devices: 1
+  gradient_clip_val: 10.0
+  max_steps: 150000
