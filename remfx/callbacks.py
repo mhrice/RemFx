@@ -64,9 +64,6 @@ class AudioCallback(Callback):
                     ]
                     for i, label in enumerate(effects_present_name):
                         self.log(f"{'_'.join(label)}", 0.0)
-                        # self.log(f"{effects}_{i}", label)
-                        # trainer.logger.experiment.log(
-                        # {f"effects_{i}": f"{'_'.join(label)}"}
                 else:
                     y = pl_module.model.sample(x)
             # Concat samples together for easier viewing in dashboard

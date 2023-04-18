@@ -15,7 +15,7 @@ def main(cfg: DictConfig):
         pl.seed_everything(cfg.seed)
     log.info(f"Instantiating datamodule <{cfg.datamodule._target_}>.")
     datamodule = hydra.utils.instantiate(cfg.datamodule, _convert_="partial")
-    log.info(f"Instantiating model <{cfg.model._target_}>.")
+    log.info("Instantiating Chain Inference Models")
     models = {}
     for effect in cfg.ckpts:
         model = hydra.utils.instantiate(cfg.ckpts[effect].model, _convert_="partial")
