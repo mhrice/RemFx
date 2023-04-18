@@ -20,7 +20,7 @@ ALL_EFFECTS = effects.Pedalboard_Effects
 
 
 class RemFXChainInference(pl.LightningModule):
-    def __init__(self, models, sample_rate, num_bins, effect_order):
+    def __init__(self, models, sample_rate, num_bins, effect_order, classifier=None):
         super().__init__()
         self.model = models
         self.mrstftloss = MultiResolutionSTFTLoss(
@@ -35,6 +35,7 @@ class RemFXChainInference(pl.LightningModule):
         )
         self.sample_rate = sample_rate
         self.effect_order = effect_order
+        self.classifier = classifier
 
     def forward(self, batch, batch_idx, order=None):
         x, y, _, rem_fx_labels = batch
@@ -43,6 +44,13 @@ class RemFXChainInference(pl.LightningModule):
             effects_order = order
         else:
             effects_order = self.effect_order
+
+        # Use classifier labels
+        if self.classifier:
+            threshold = 0.5
+            labels = self.classifier(x)
+            rem_fx_labels = torch.where(labels > threshold, 1.0, 0.0)
+
         effects_present = [
             [ALL_EFFECTS[i] for i, effect in enumerate(effect_label) if effect == 1.0]
             for effect_label in rem_fx_labels

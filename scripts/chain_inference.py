@@ -26,6 +26,16 @@ def main(cfg: DictConfig):
         model.to(device)
         models[effect] = model
 
+    classifier = None
+    if "classifier" in cfg:
+        log.info(f"Instantiating classifier <{cfg.classifier._target_}>.")
+        classifier = hydra.utils.instantiate(cfg.classifier, _convert_="partial")
+        ckpt_path = cfg.classifier_ckpt
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        state_dict = torch.load(ckpt_path, map_location=device)["state_dict"]
+        classifier.load_state_dict(state_dict)
+        classifier.to(device)
+
     callbacks = []
     if "callbacks" in cfg:
         for _, cb_conf in cfg["callbacks"].items():
@@ -54,6 +64,7 @@ def main(cfg: DictConfig):
         sample_rate=cfg.sample_rate,
         num_bins=cfg.num_bins,
         effect_order=cfg.inference_effects_ordering,
+        classifier=classifier,
     )
     trainer.test(model=inference_model, datamodule=datamodule)
 
