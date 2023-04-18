@@ -56,4 +56,4 @@ trainer:
   accelerator: ${accelerator}
   devices: 1
   gradient_clip_val: 10.0
-  max_steps: 150000
+  max_steps: 80000
