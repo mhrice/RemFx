@@ -47,6 +47,9 @@ see `cfg/exp/default.yaml` for an example.
 - `reverb`
 - `delay`
 
+## Chain Inference
+`python scripts/chain_inference.py +exp=chain_inference`
+
 ## Run inference on directory
 Assumes directory is structured as
 - root
@@ -62,6 +65,7 @@ Assumes directory is structured as
 Change root path in `shell_vars.sh` and `source shell_vars.sh`
 
 `python scripts/chain_inference.py +exp=chain_inference_custom`
+
 
 
 ## Misc.
