@@ -82,3 +82,29 @@ To run audio effects classifiction:
 ```
 python scripts/train.py model=classifier "effects_to_use=[compressor, distortion, reverb, chorus, delay]" "effects_to_remove=[]" max_kept_effects=5 max_removed_effects=0 shuffle_kept_effects=True shuffle_removed_effects=True accelerator='gpu' render_root=/scratch/RemFX render_files=True
 ```
+
+```
+srun --comment harmonai --partition=g40 --gpus=1 --cpus-per-gpu=12 --job-name=harmonai --pty bash -i
+source env/bin/activate
+rsync -aP /fsx/home-csteinmetz1/data/EffectSet_cjs.tar /scratch
+tar -xvf EffectSet_cjs.tar
+mv scratch/EffectSet_cjs ./EffectSet_cjs
+
+export DATASET_ROOT="/admin/home-csteinmetz1/data/remfx-data"
+export WANDB_PROJECT="RemFX"
+export WANDB_ENTITY="cjstein"
+
+python scripts/train.py +exp=5-5.yaml model=cls_vggish render_files=False logs_dir=/scratch/cjs-log datamodule.batch_size=64
+python scripts/train.py +exp=5-5.yaml model=cls_panns_pt render_files=False logs_dir=/scratch/cjs-log datamodule.batch_size=64
+python scripts/train.py +exp=5-5.yaml model=cls_wav2vec2 render_files=False logs_dir=/scratch/cjs-log datamodule.batch_size=64
+python scripts/train.py +exp=5-5.yaml model=cls_wav2clip render_files=False logs_dir=/scratch/cjs-log datamodule.batch_size=64
+```
+
+### Installing HEAR models
+
+wav2clip
+```
+pip install hearbaseline
+pip install git+https://github.com/hohsiangwu/wav2clip-hear.git
+pip install git+https://github.com/qiuqiangkong/HEAR2021_Challenge_PANNs
+wget https://zenodo.org/record/6332525/files/hear2021-panns_hear.pth

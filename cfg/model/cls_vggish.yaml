@@ -1,0 +1,11 @@
+# @package _global_
+model:
+  _target_: remfx.models.FXClassifier
+  lr: 3e-4
+  lr_weight_decay: 1e-3
+  sample_rate: ${sample_rate}
+  network:
+    _target_: remfx.classifier.VGGish
+    num_classes: ${num_classes}
+    sample_rate: ${sample_rate}
+

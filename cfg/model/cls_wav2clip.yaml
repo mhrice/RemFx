@@ -1,14 +1,11 @@
 # @package _global_
 model:
   _target_: remfx.models.FXClassifier
-  lr: 1e-4
+  lr: 3e-4
   lr_weight_decay: 1e-3
   sample_rate: ${sample_rate}
   network:
-    _target_: remfx.cnn14.Cnn14
+    _target_: remfx.classifier.Wav2CLIP
     num_classes: ${num_classes}
-    n_fft: 4096
-    hop_length: 512
-    n_mels: 128
     sample_rate: ${sample_rate}
 

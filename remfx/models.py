@@ -422,14 +422,32 @@ class FXClassifier(pl.LightningModule):
         self.lr_weight_decay = lr_weight_decay
         self.sample_rate = sample_rate
         self.network = network
+        self.effects = ["distortion", "compressor", "reverb", "chorus", "delay"]
 
-    def forward(self, x: torch.Tensor):
+        self.train_f1 = torchmetrics.classification.MultilabelF1Score(
+            5, average="none", multidim_average="global"
+        )
+        self.val_f1 = torchmetrics.classification.MultilabelF1Score(
+            5, average="none", multidim_average="global"
+        )
+        self.test_f1 = torchmetrics.classification.MultilabelF1Score(
+            5, average="none", multidim_average="global"
+        )
+
+        self.metrics = {
+            "train": self.train_f1,
+            "valid": self.val_f1,
+            "test": self.test_f1,
+        }
+
+    def forward(self, x: torch.Tensor, train: bool = False):
         return self.network(x)
 
     def common_step(self, batch, batch_idx, mode: str = "train"):
+        train = True if mode == "train" else False
         x, y, dry_label, wet_label = batch
-        pred_label = self.network(x)
-        loss = nn.functional.cross_entropy(pred_label, dry_label)
+        pred_label = self(x, train)
+        loss = nn.functional.cross_entropy(pred_label, wet_label)
         self.log(
             f"{mode}_loss",
             loss,
@@ -440,17 +458,29 @@ class FXClassifier(pl.LightningModule):
             sync_dist=True,
         )
 
+        metrics = self.metrics[mode](pred_label, wet_label.long())
+        avg_metrics = torch.mean(metrics)
+
         self.log(
-            f"{mode}_mAP",
-            torchmetrics.functional.retrieval_average_precision(
-                pred_label, dry_label.long()
-            ),
+            f"{mode}_f1_avg",
+            avg_metrics,
             on_step=True,
             on_epoch=True,
             prog_bar=True,
             logger=True,
             sync_dist=True,
         )
+
+        for idx, effect_name in enumerate(self.effects):
+            self.log(
+                f"{mode}_f1_{effect_name}",
+                metrics[idx],
+                on_step=True,
+                on_epoch=True,
+                prog_bar=True,
+                logger=True,
+                sync_dist=True,
+            )
 
         return loss
 
