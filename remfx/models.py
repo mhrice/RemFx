@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import torchmetrics
 import pytorch_lightning as pl
 from torch import Tensor, nn
@@ -409,6 +410,30 @@ class TCNModel(nn.Module):
         return output
 
 
+def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
+    """Mixup data augmentation for time-domain signals.
+    Args:
+        x (torch.Tensor): Batch of time-domain signals, shape [batch, 1, time].
+        y (torch.Tensor): Batch of labels, shape [batch, n_classes].
+        alpha (float): Beta distribution parameter.
+    Returns:
+        torch.Tensor: Mixed time-domain signals, shape [batch, 1, time].
+        torch.Tensor: Mixed labels, shape [batch, n_classes].
+        torch.Tensor: Lambda
+    """
+    batch_size = x.size(0)
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1
+
+    index = torch.randperm(batch_size).to(x.device)
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    mixed_y = lam * y + (1 - lam) * y[index, :]
+
+    return mixed_x, mixed_y, lam
+
+
 class FXClassifier(pl.LightningModule):
     def __init__(
         self,
@@ -416,13 +441,15 @@ class FXClassifier(pl.LightningModule):
         lr_weight_decay: float,
         sample_rate: float,
         network: nn.Module,
+        mixup: bool = False,
     ):
         super().__init__()
         self.lr = lr
         self.lr_weight_decay = lr_weight_decay
         self.sample_rate = sample_rate
         self.network = network
-        self.effects = ["distortion", "compressor", "reverb", "chorus", "delay"]
+        self.effects = ["Reverb", "Chorus", "Delay", "Distortion", "Compressor"]
+        self.mixup = mixup
 
         self.train_f1 = torchmetrics.classification.MultilabelF1Score(
             5, average="none", multidim_average="global"
@@ -441,13 +468,24 @@ class FXClassifier(pl.LightningModule):
         }
 
     def forward(self, x: torch.Tensor, train: bool = False):
-        return self.network(x)
+        return self.network(x, train=train)
 
     def common_step(self, batch, batch_idx, mode: str = "train"):
         train = True if mode == "train" else False
         x, y, dry_label, wet_label = batch
-        pred_label = self(x, train)
-        loss = nn.functional.cross_entropy(pred_label, wet_label)
+
+        if mode == "train" and self.mixup:
+            x_mixed, label_mixed, lam = mixup(x, wet_label)
+            pred_label = self(x_mixed, train)
+            loss = nn.functional.cross_entropy(pred_label, label_mixed)
+            print(torch.sigmoid(pred_label[0, ...]))
+            print(label_mixed[0, ...])
+        else:
+            pred_label = self(x, train)
+            loss = nn.functional.cross_entropy(pred_label, wet_label)
+            print(torch.where(torch.sigmoid(pred_label[0, ...]) > 0.5, 1.0, 0.0).long())
+            print(wet_label.long()[0, ...])
+
         self.log(
             f"{mode}_loss",
             loss,
@@ -458,7 +496,7 @@ class FXClassifier(pl.LightningModule):
             sync_dist=True,
         )
 
-        metrics = self.metrics[mode](pred_label, wet_label.long())
+        metrics = self.metrics[mode](torch.sigmoid(pred_label), wet_label.long())
         avg_metrics = torch.mean(metrics)
 
         self.log(
