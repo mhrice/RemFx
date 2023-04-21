@@ -442,6 +442,7 @@ class FXClassifier(pl.LightningModule):
         sample_rate: float,
         network: nn.Module,
         mixup: bool = False,
+        label_smoothing: float = 0.0,
     ):
         super().__init__()
         self.lr = lr
@@ -450,6 +451,9 @@ class FXClassifier(pl.LightningModule):
         self.network = network
         self.effects = ["Reverb", "Chorus", "Delay", "Distortion", "Compressor"]
         self.mixup = mixup
+        self.label_smoothing = label_smoothing
+
+        self.loss_fn = torch.nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
         self.train_f1 = torchmetrics.classification.MultilabelF1Score(
             5, average="none", multidim_average="global"
@@ -461,10 +465,26 @@ class FXClassifier(pl.LightningModule):
             5, average="none", multidim_average="global"
         )
 
+        self.train_f1_avg = torchmetrics.classification.MultilabelF1Score(
+            5, threshold=0.5, average="macro", multidim_average="global"
+        )
+        self.val_f1_avg = torchmetrics.classification.MultilabelF1Score(
+            5, threshold=0.5, average="macro", multidim_average="global"
+        )
+        self.test_f1_avg = torchmetrics.classification.MultilabelF1Score(
+            5, threshold=0.5, average="macro", multidim_average="global"
+        )
+
         self.metrics = {
             "train": self.train_f1,
             "valid": self.val_f1,
             "test": self.test_f1,
+        }
+
+        self.avg_metrics = {
+            "train": self.train_f1_avg,
+            "valid": self.val_f1_avg,
+            "test": self.test_f1_avg,
         }
 
     def forward(self, x: torch.Tensor, train: bool = False):
@@ -477,12 +497,12 @@ class FXClassifier(pl.LightningModule):
         if mode == "train" and self.mixup:
             x_mixed, label_mixed, lam = mixup(x, wet_label)
             pred_label = self(x_mixed, train)
-            loss = nn.functional.cross_entropy(pred_label, label_mixed)
+            loss = self.loss_fn(pred_label, label_mixed)
             print(torch.sigmoid(pred_label[0, ...]))
             print(label_mixed[0, ...])
         else:
             pred_label = self(x, train)
-            loss = nn.functional.cross_entropy(pred_label, wet_label)
+            loss = self.loss_fn(pred_label, wet_label)
             print(torch.where(torch.sigmoid(pred_label[0, ...]) > 0.5, 1.0, 0.0).long())
             print(wet_label.long()[0, ...])
 
@@ -497,17 +517,6 @@ class FXClassifier(pl.LightningModule):
         )
 
         metrics = self.metrics[mode](torch.sigmoid(pred_label), wet_label.long())
-        avg_metrics = torch.mean(metrics)
-
-        self.log(
-            f"{mode}_f1_avg",
-            avg_metrics,
-            on_step=True,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
 
         for idx, effect_name in enumerate(self.effects):
             self.log(
@@ -519,6 +528,20 @@ class FXClassifier(pl.LightningModule):
                 logger=True,
                 sync_dist=True,
             )
+
+        avg_metrics = self.avg_metrics[mode](
+            torch.sigmoid(pred_label), wet_label.long()
+        )
+
+        self.log(
+            f"{mode}_f1_avg",
+            avg_metrics,
+            on_step=True,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+            sync_dist=True,
+        )
 
         return loss
 
