@@ -10,8 +10,7 @@ model:
     num_classes: ${num_classes}
     n_fft: 2048
     hop_length: 512
-    n_mels: 64
-    sample_rate: 44100
-    model_sample_rate: 44100
+    n_mels: 128
+    sample_rate: ${sample_rate}
+    model_sample_rate: ${sample_rate}
     specaugment: False
-

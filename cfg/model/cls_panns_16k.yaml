@@ -10,6 +10,6 @@ model:
     n_fft: 2048
     hop_length: 512
     n_mels: 128
-    sample_rate: 44100
-    model_sample_rate: 16000
+    sample_rate: ${sample_rate}
+    model_sample_rate: ${sample_rate}
 
