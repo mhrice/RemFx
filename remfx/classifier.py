@@ -33,7 +33,7 @@ class PANNs(torch.nn.Module):
             torch.nn.Linear(hidden_dim, num_classes),
         )
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, **kwargs):
         with torch.no_grad():
             x = self.resample(x)
             embed = panns_hear.get_scene_embeddings(x.view(x.shape[0], -1), self.model)
@@ -61,7 +61,7 @@ class Wav2CLIP(nn.Module):
             torch.nn.Linear(hidden_dim, num_classes),
         )
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, **kwargs):
         with torch.no_grad():
             x = self.resample(x)
             embed = wav2clip_hear.get_scene_embeddings(
@@ -91,7 +91,7 @@ class VGGish(nn.Module):
             torch.nn.Linear(hidden_dim, num_classes),
         )
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, **kwargs):
         with torch.no_grad():
             x = self.resample(x)
             embed = hearbaseline.vggish.get_scene_embeddings(
@@ -121,7 +121,7 @@ class wav2vec2(nn.Module):
             torch.nn.Linear(hidden_dim, num_classes),
         )
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, **kwargs):
         with torch.no_grad():
             x = self.resample(x)
             embed = hearbaseline.wav2vec2.get_scene_embeddings(
@@ -180,6 +180,10 @@ class Cnn14(nn.Module):
             self.resample = torchaudio.transforms.Resample(
                 orig_freq=sample_rate, new_freq=model_sample_rate
             )
+
+        if self.specaugment:
+            self.freq_mask = torchaudio.transforms.FrequencyMasking(64, True)
+            self.time_mask = torchaudio.transforms.TimeMasking(128, True)
 
     def init_weight(self):
         init_bn(self.bn0)
