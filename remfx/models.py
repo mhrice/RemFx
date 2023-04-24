@@ -36,6 +36,7 @@ class RemFXChainInference(pl.LightningModule):
         self.sample_rate = sample_rate
         self.effect_order = effect_order
         self.classifier = classifier
+        # self.output_str = "IN_SISDR,OUT_SISDR,IN_STFT,OUT_STFT\n"
 
     def forward(self, batch, batch_idx, order=None):
         x, y, _, rem_fx_labels = batch
@@ -48,8 +49,9 @@ class RemFXChainInference(pl.LightningModule):
         # Use classifier labels
         if self.classifier:
             threshold = 0.5
-            labels = self.classifier(x)
-            rem_fx_labels = torch.where(labels > threshold, 1.0, 0.0)
+            with torch.no_grad():
+                labels = torch.sigmoid(self.classifier(x))
+                rem_fx_labels = torch.where(labels > threshold, 1.0, 0.0)
 
         effects_present = [
             [ALL_EFFECTS[i] for i, effect in enumerate(effect_label) if effect == 1.0]
@@ -155,6 +157,11 @@ class RemFXChainInference(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
+                # self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
+            # self.output_str += "\n"
+            # if batch_idx == 4:
+            # with open("output.csv", "w") as f:
+            # f.write(self.output_str)
         return loss
 
     def sample(self, batch):
