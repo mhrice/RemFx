@@ -13,10 +13,10 @@ from typing import Any, List, Dict
 from torch.utils.data import Dataset, DataLoader
 from remfx.utils import select_random_chunk
 import multiprocessing
+from auraloss.freq import MultiResolutionSTFTLoss
 
 
-# https://zenodo.org/record/1193957 -> VocalSet
-
+STFT_THRESH = 1e-3
 ALL_EFFECTS = effect_lib.Pedalboard_Effects
 # print(ALL_EFFECTS)
 
@@ -275,6 +275,7 @@ class EffectDataset(Dataset):
         self.effects_to_keep = [] if effects_to_keep is None else effects_to_keep
         self.effects_to_remove = [] if effects_to_remove is None else effects_to_remove
         self.normalize = effect_lib.LoudnessNormalize(sample_rate, target_lufs_db=-20)
+        self.mrstft = MultiResolutionSTFTLoss(sample_rate=sample_rate)
         self.effects = effect_modules
         self.shuffle_kept_effects = shuffle_kept_effects
         self.shuffle_removed_effects = shuffle_removed_effects
@@ -438,46 +439,52 @@ class EffectDataset(Dataset):
         # Index in effect settings
         effect_names_to_apply = [self.effects_to_keep[i] for i in effect_indices]
         effects_to_apply = [self.effects[i] for i in effect_names_to_apply]
-        # Apply
-        dry_labels = []
-        for effect in effects_to_apply:
-            # Normalize in-between effects
-            dry = self.normalize(effect(dry))
-            dry_labels.append(ALL_EFFECTS.index(type(effect)))
+        # stft comparison
+        stft = 0
+        while stft < STFT_THRESH:
+            # Apply
+            dry_labels = []
+            for effect in effects_to_apply:
+                # Normalize in-between effects
+                dry = self.normalize(effect(dry))
+                dry_labels.append(ALL_EFFECTS.index(type(effect)))
 
-        # Apply effects_to_remove
-        # Shuffle effects if specified
-        if self.shuffle_removed_effects:
-            effect_indices = torch.randperm(len(self.effects_to_remove))
-        else:
-            effect_indices = torch.arange(len(self.effects_to_remove))
-        wet = torch.clone(dry)
-        r1 = self.num_removed_effects[0]
-        r2 = self.num_removed_effects[1]
-        num_removed_effects = torch.round((r1 - r2) * torch.rand(1) + r2).int()
-        effect_indices = effect_indices[:num_removed_effects]
-        # Index in effect settings
-        effect_names_to_apply = [self.effects_to_remove[i] for i in effect_indices]
-        effects_to_apply = [self.effects[i] for i in effect_names_to_apply]
-        # Apply
-        wet_labels = []
-        for effect in effects_to_apply:
-            # Normalize in-between effects
-            wet = self.normalize(effect(wet))
-            wet_labels.append(ALL_EFFECTS.index(type(effect)))
+            # Apply effects_to_remove
+            # Shuffle effects if specified
+            if self.shuffle_removed_effects:
+                effect_indices = torch.randperm(len(self.effects_to_remove))
+            else:
+                effect_indices = torch.arange(len(self.effects_to_remove))
+            wet = torch.clone(dry)
+            r1 = self.num_removed_effects[0]
+            r2 = self.num_removed_effects[1]
+            num_removed_effects = torch.round((r1 - r2) * torch.rand(1) + r2).int()
+            effect_indices = effect_indices[:num_removed_effects]
+            # Index in effect settings
+            effect_names_to_apply = [self.effects_to_remove[i] for i in effect_indices]
+            effects_to_apply = [self.effects[i] for i in effect_names_to_apply]
+            # Apply
+            wet_labels = []
+            for effect in effects_to_apply:
+                # Normalize in-between effects
+                wet = self.normalize(effect(wet))
+                wet_labels.append(ALL_EFFECTS.index(type(effect)))
 
-        wet_labels_tensor = torch.zeros(len(ALL_EFFECTS))
-        dry_labels_tensor = torch.zeros(len(ALL_EFFECTS))
+            wet_labels_tensor = torch.zeros(len(ALL_EFFECTS))
+            dry_labels_tensor = torch.zeros(len(ALL_EFFECTS))
 
-        for label_idx in wet_labels:
-            wet_labels_tensor[label_idx] = 1.0
+            for label_idx in wet_labels:
+                wet_labels_tensor[label_idx] = 1.0
 
-        for label_idx in dry_labels:
-            dry_labels_tensor[label_idx] = 1.0
+            for label_idx in dry_labels:
+                dry_labels_tensor[label_idx] = 1.0
 
-        # Normalize
-        normalized_dry = self.normalize(dry)
-        normalized_wet = self.normalize(wet)
+            # Normalize
+            normalized_dry = self.normalize(dry)
+            normalized_wet = self.normalize(wet)
+
+            # Check STFT, pick different effects if necessary
+            stft = self.mrstft(normalized_wet, normalized_dry)
         return normalized_dry, normalized_wet, dry_labels_tensor, wet_labels_tensor
 
 
