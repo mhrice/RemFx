@@ -162,6 +162,7 @@ def parallel_process_effects(
     sample_rate: int,
     target_lufs_db: float,
 ):
+    """Note: This function has an issue with random seed. It may not fully randomize the effects."""
     chunk = None
     random_dataset_choice = random.choice(files)
     while chunk is None:
@@ -242,6 +243,134 @@ def parallel_process_effects(
     # return normalized_dry, normalized_wet, dry_labels_tensor, wet_labels_tensor
 
 
+class DynamicEffectDataset(Dataset):
+    def __init__(
+        self,
+        root: str,
+        sample_rate: int,
+        chunk_size: int = 262144,
+        total_chunks: int = 1000,
+        effect_modules: List[Dict[str, torch.nn.Module]] = None,
+        effects_to_keep: List[str] = None,
+        effects_to_remove: List[str] = None,
+        num_kept_effects: List[int] = [1, 5],
+        num_removed_effects: List[int] = [1, 5],
+        shuffle_kept_effects: bool = True,
+        shuffle_removed_effects: bool = False,
+        render_files: bool = True,
+        render_root: str = None,
+        mode: str = "train",
+        parallel: bool = False,
+    ) -> None:
+        super().__init__()
+        self.chunks = []
+        self.song_idx = []
+        self.root = Path(root)
+        self.render_root = Path(render_root)
+        self.chunk_size = chunk_size
+        self.total_chunks = total_chunks
+        self.sample_rate = sample_rate
+        self.mode = mode
+        self.num_kept_effects = num_kept_effects
+        self.num_removed_effects = num_removed_effects
+        self.effects_to_keep = [] if effects_to_keep is None else effects_to_keep
+        self.effects_to_remove = [] if effects_to_remove is None else effects_to_remove
+        self.normalize = effect_lib.LoudnessNormalize(sample_rate, target_lufs_db=-20)
+        self.effects = effect_modules
+        self.shuffle_kept_effects = shuffle_kept_effects
+        self.shuffle_removed_effects = shuffle_removed_effects
+        effects_string = "_".join(
+            self.effects_to_keep
+            + ["_"]
+            + self.effects_to_remove
+            + ["_"]
+            + [str(x) for x in num_kept_effects]
+            + ["_"]
+            + [str(x) for x in num_removed_effects]
+        )
+        # self.validate_effect_input()
+        # self.proc_root = self.render_root / "processed" / effects_string / self.mode
+        self.parallel = parallel
+        self.files = locate_files(self.root, self.mode)
+
+    def process_effects(self, dry: torch.Tensor):
+        # Apply Kept Effects
+        # Shuffle effects if specified
+        if self.shuffle_kept_effects:
+            effect_indices = torch.randperm(len(self.effects_to_keep))
+        else:
+            effect_indices = torch.arange(len(self.effects_to_keep))
+
+        r1 = self.num_kept_effects[0]
+        r2 = self.num_kept_effects[1]
+        num_kept_effects = torch.round((r1 - r2) * torch.rand(1) + r2).int()
+        effect_indices = effect_indices[:num_kept_effects]
+        # Index in effect settings
+        effect_names_to_apply = [self.effects_to_keep[i] for i in effect_indices]
+        effects_to_apply = [self.effects[i] for i in effect_names_to_apply]
+        # Apply
+        dry_labels = []
+        for effect in effects_to_apply:
+            # Normalize in-between effects
+            dry = self.normalize(effect(dry))
+            dry_labels.append(ALL_EFFECTS.index(type(effect)))
+
+        # Apply effects_to_remove
+        # Shuffle effects if specified
+        if self.shuffle_removed_effects:
+            effect_indices = torch.randperm(len(self.effects_to_remove))
+        else:
+            effect_indices = torch.arange(len(self.effects_to_remove))
+        wet = torch.clone(dry)
+        r1 = self.num_removed_effects[0]
+        r2 = self.num_removed_effects[1]
+        num_removed_effects = torch.round((r1 - r2) * torch.rand(1) + r2).int()
+        effect_indices = effect_indices[:num_removed_effects]
+        # Index in effect settings
+        effect_names_to_apply = [self.effects_to_remove[i] for i in effect_indices]
+        effects_to_apply = [self.effects[i] for i in effect_names_to_apply]
+        # Apply
+        wet_labels = []
+        for effect in effects_to_apply:
+            # Normalize in-between effects
+            wet = self.normalize(effect(wet))
+            wet_labels.append(ALL_EFFECTS.index(type(effect)))
+
+        wet_labels_tensor = torch.zeros(len(ALL_EFFECTS))
+        dry_labels_tensor = torch.zeros(len(ALL_EFFECTS))
+
+        for label_idx in wet_labels:
+            wet_labels_tensor[label_idx] = 1.0
+
+        for label_idx in dry_labels:
+            dry_labels_tensor[label_idx] = 1.0
+
+        # Normalize
+        normalized_dry = self.normalize(dry)
+        normalized_wet = self.normalize(wet)
+        return normalized_dry, normalized_wet, dry_labels_tensor, wet_labels_tensor
+
+    def __len__(self):
+        return self.total_chunks
+
+    def __getitem__(self, _: int):
+        chunk = None
+        random_dataset_choice = random.choice(self.files)
+        while chunk is None:
+            random_file_choice = random.choice(random_dataset_choice)
+            chunk = select_random_chunk(
+                random_file_choice, self.chunk_size, self.sample_rate
+            )
+
+        # Sum to mono
+        if chunk.shape[0] > 1:
+            chunk = chunk.sum(0, keepdim=True)
+
+        dry, wet, dry_effects, wet_effects = self.process_effects(chunk)
+
+        return wet, dry, dry_effects, wet_effects
+
+
 class EffectDataset(Dataset):
     def __init__(
         self,
@@ -259,7 +388,7 @@ class EffectDataset(Dataset):
         render_files: bool = True,
         render_root: str = None,
         mode: str = "train",
-        parallel: bool = True,
+        parallel: bool = False,
     ):
         super().__init__()
         self.chunks = []
@@ -524,7 +653,8 @@ class EffectDatamodule(pl.LightningDataModule):
         val_dataset,
         test_dataset,
         *,
-        batch_size: int,
+        train_batch_size: int,
+        test_batch_size: int,
         num_workers: int,
         pin_memory: bool = False,
         **kwargs: int,
@@ -533,7 +663,8 @@ class EffectDatamodule(pl.LightningDataModule):
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
-        self.batch_size = batch_size
+        self.train_batch_size = train_batch_size
+        self.test_batch_size = test_batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
 
@@ -543,7 +674,7 @@ class EffectDatamodule(pl.LightningDataModule):
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
             dataset=self.train_dataset,
-            batch_size=self.batch_size,
+            batch_size=self.train_batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             shuffle=True,
@@ -552,7 +683,7 @@ class EffectDatamodule(pl.LightningDataModule):
     def val_dataloader(self) -> DataLoader:
         return DataLoader(
             dataset=self.val_dataset,
-            batch_size=self.batch_size,
+            batch_size=self.train_batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             shuffle=False,
@@ -561,7 +692,7 @@ class EffectDatamodule(pl.LightningDataModule):
     def test_dataloader(self) -> DataLoader:
         return DataLoader(
             dataset=self.test_dataset,
-            batch_size=2,  # Use small, consistent batch size for testing
+            batch_size=self.test_batch_size,  # Use small, consistent batch size for testing
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             shuffle=False,
