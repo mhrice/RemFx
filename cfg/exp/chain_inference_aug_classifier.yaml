@@ -47,14 +47,15 @@ classifier:
   lr: 3e-4
   lr_weight_decay: 1e-3
   sample_rate: ${sample_rate}
+  mixup: False
   network:
     _target_: remfx.classifier.Cnn14
     num_classes: ${num_classes}
-    n_fft: 1024
-    hop_length: 256
+    n_fft: 2048
+    hop_length: 512
     n_mels: 128
-    sample_rate: 44100
-    model_sample_rate: 44100
+    sample_rate: ${sample_rate}
+    model_sample_rate: ${sample_rate}
     specaugment: False
 classifier_ckpt: "ckpts/classifier.ckpt"
 
