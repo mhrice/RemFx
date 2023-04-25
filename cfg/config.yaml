@@ -63,6 +63,7 @@ datamodule:
     shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
     render_root: ${render_root}
+    parallel: True
   val_dataset:
     _target_: remfx.datasets.EffectDataset
     total_chunks: 1000
@@ -109,6 +110,7 @@ logger:
   job_type: "train"
   group: ""
   save_dir: "."
+  log_model: True
 
 trainer:
   _target_: pytorch_lightning.Trainer
