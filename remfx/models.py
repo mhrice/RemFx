@@ -37,7 +37,7 @@ class RemFXChainInference(pl.LightningModule):
         self.sample_rate = sample_rate
         self.effect_order = effect_order
         self.classifier = classifier
-        # self.output_str = "IN_SISDR,OUT_SISDR,IN_STFT,OUT_STFT\n"
+        self.output_str = "IN_SISDR,OUT_SISDR,IN_STFT,OUT_STFT\n"
 
     def forward(self, batch, batch_idx, order=None):
         x, y, _, rem_fx_labels = batch
@@ -46,7 +46,7 @@ class RemFXChainInference(pl.LightningModule):
             effects_order = order
         else:
             effects_order = self.effect_order
-
+        old_labels = rem_fx_labels
         # Use classifier labels
         if self.classifier:
             threshold = 0.5
@@ -113,13 +113,13 @@ class RemFXChainInference(pl.LightningModule):
         output = torch.stack(output)
         output_samples = rearrange(output, "b c t -> c (b t)").unsqueeze(0)
 
-        log_wandb_audio_batch(
-            logger=self.logger,
-            id="output_audio",
-            samples=output_samples.cpu(),
-            sampling_rate=self.sample_rate,
-            caption="Output Data",
-        )
+        # log_wandb_audio_batch(
+        #     logger=self.logger,
+        #     id="output_audio",
+        #     samples=output_samples.cpu(),
+        #     sampling_rate=self.sample_rate,
+        #     caption="Output Data",
+        # )
         loss = self.mrstftloss(output, y) + self.l1loss(output, y) * 100
         return loss, output
 
@@ -158,12 +158,15 @@ class RemFXChainInference(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-                # self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
-            # self.output_str += "\n"
-            # if batch_idx == 4:
-            # with open("output.csv", "w") as f:
-            # f.write(self.output_str)
+                print(f"Input_{metric}", negate * self.metrics[metric](x, y))
+                print(f"test_{metric}", negate * self.metrics[metric](output, y))
+                self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
+            self.output_str += "\n"
         return loss
+
+    def on_test_end(self) -> None:
+        with open("output.csv", "w") as f:
+            f.write(self.output_str)
 
     def sample(self, batch):
         return self.forward(batch, 0)[1]
@@ -196,6 +199,7 @@ class RemFX(pl.LightningModule):
         )
         # Log first batch metrics input vs output only once
         self.log_train_audio = True
+        self.output_str = "IN_SISDR,OUT_SISDR,IN_STFT,OUT_STFT\n"
 
     @property
     def device(self):
@@ -272,8 +276,15 @@ class RemFX(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-
+                print(f"Input_{metric}", negate * self.metrics[metric](x, y))
+                print(f"test_{metric}", negate * self.metrics[metric](output, y))
+                self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
+            self.output_str += "\n"
         return loss
+
+    def on_test_end(self) -> None:
+        with open("output.csv", "w") as f:
+            f.write(self.output_str)
 
 
 class OpenUnmixModel(nn.Module):

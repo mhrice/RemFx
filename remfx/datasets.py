@@ -259,7 +259,7 @@ class EffectDataset(Dataset):
         render_files: bool = True,
         render_root: str = None,
         mode: str = "train",
-        parallel: bool = True,
+        parallel: bool = False,
     ):
         super().__init__()
         self.chunks = []
@@ -342,7 +342,6 @@ class EffectDataset(Dataset):
                         chunk = select_random_chunk(
                             random_file_choice, self.chunk_size, self.sample_rate
                         )
-
                     # Sum to mono
                     if chunk.shape[0] > 1:
                         chunk = chunk.sum(0, keepdim=True)
@@ -561,7 +560,7 @@ class EffectDatamodule(pl.LightningDataModule):
     def test_dataloader(self) -> DataLoader:
         return DataLoader(
             dataset=self.test_dataset,
-            batch_size=2,  # Use small, consistent batch size for testing
+            batch_size=1,  # Use small, consistent batch size for testing
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             shuffle=False,

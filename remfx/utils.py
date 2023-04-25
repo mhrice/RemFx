@@ -159,7 +159,7 @@ def select_random_chunk(
     random_start = torch.randint(0, max_len, (1,)).item()
     chunk = audio[:, random_start : random_start + new_chunk_size]
     # Skip if energy too low
-    if torch.mean(torch.abs(chunk)) < 1e-6:
+    if torch.mean(torch.abs(chunk)) < 1e-4:
         return None
     resampled_chunk = torchaudio.functional.resample(chunk, sr, sample_rate)
     return resampled_chunk
