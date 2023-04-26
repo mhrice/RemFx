@@ -65,6 +65,8 @@ def main(cfg: DictConfig):
         num_bins=cfg.num_bins,
         effect_order=cfg.inference_effects_ordering,
         classifier=classifier,
+        shuffle_effect_order=cfg.inference_effects_shuffle,
+        use_all_effect_models=cfg.inference_use_all_effect_models,
     )
     trainer.test(model=inference_model, datamodule=datamodule)
 

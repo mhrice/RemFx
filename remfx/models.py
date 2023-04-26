@@ -16,12 +16,22 @@ from remfx.callbacks import log_wandb_audio_batch
 from einops import rearrange
 from remfx import effects
 import asteroid
+import random
 
 ALL_EFFECTS = effects.Pedalboard_Effects
 
 
 class RemFXChainInference(pl.LightningModule):
-    def __init__(self, models, sample_rate, num_bins, effect_order, classifier=None):
+    def __init__(
+        self,
+        models,
+        sample_rate,
+        num_bins,
+        effect_order,
+        classifier=None,
+        shuffle_effect_order=False,
+        use_all_effect_models=False,
+    ):
         super().__init__()
         self.model = models
         self.mrstftloss = MultiResolutionSTFTLoss(
@@ -37,7 +47,9 @@ class RemFXChainInference(pl.LightningModule):
         self.sample_rate = sample_rate
         self.effect_order = effect_order
         self.classifier = classifier
+        self.shuffle_effect_order = shuffle_effect_order
         self.output_str = "IN_SISDR,OUT_SISDR,IN_STFT,OUT_STFT\n"
+        self.use_all_effect_models = use_all_effect_models
 
     def forward(self, batch, batch_idx, order=None):
         x, y, _, rem_fx_labels = batch
@@ -46,36 +58,45 @@ class RemFXChainInference(pl.LightningModule):
             effects_order = order
         else:
             effects_order = self.effect_order
-        old_labels = rem_fx_labels
+
         # Use classifier labels
         if self.classifier:
             threshold = 0.5
             with torch.no_grad():
                 labels = torch.sigmoid(self.classifier(x))
                 rem_fx_labels = torch.where(labels > threshold, 1.0, 0.0)
-
-        effects_present = [
-            [ALL_EFFECTS[i] for i, effect in enumerate(effect_label) if effect == 1.0]
-            for effect_label in rem_fx_labels
-        ]
+        if self.use_all_effect_models:
+            effects_present = [
+                [ALL_EFFECTS[i] for i, effect in enumerate(effect_label) if effect]
+                for effect_label in rem_fx_labels
+            ]
+        else:
+            effects_present = [
+                [
+                    ALL_EFFECTS[i]
+                    for i, effect in enumerate(effect_label)
+                    if effect == 1.0
+                ]
+                for effect_label in rem_fx_labels
+            ]
         output = []
-        input_samples = rearrange(x, "b c t -> c (b t)").unsqueeze(0)
-        target_samples = rearrange(y, "b c t -> c (b t)").unsqueeze(0)
+        # input_samples = rearrange(x, "b c t -> c (b t)").unsqueeze(0)
+        # target_samples = rearrange(y, "b c t -> c (b t)").unsqueeze(0)
 
-        log_wandb_audio_batch(
-            logger=self.logger,
-            id="input_effected_audio",
-            samples=input_samples.cpu(),
-            sampling_rate=self.sample_rate,
-            caption="Input Data",
-        )
-        log_wandb_audio_batch(
-            logger=self.logger,
-            id="target_audio",
-            samples=target_samples.cpu(),
-            sampling_rate=self.sample_rate,
-            caption="Target Data",
-        )
+        # log_wandb_audio_batch(
+        #     logger=self.logger,
+        #     id="input_effected_audio",
+        #     samples=input_samples.cpu(),
+        #     sampling_rate=self.sample_rate,
+        #     caption="Input Data",
+        # )
+        # log_wandb_audio_batch(
+        #     logger=self.logger,
+        #     id="target_audio",
+        #     samples=target_samples.cpu(),
+        #     sampling_rate=self.sample_rate,
+        #     caption="Target Data",
+        # )
         with torch.no_grad():
             for i, (elem, effects_list) in enumerate(zip(x, effects_present)):
                 elem = elem.unsqueeze(0)  # Add batch dim
@@ -111,7 +132,6 @@ class RemFXChainInference(pl.LightningModule):
                 # )
                 output.append(elem.squeeze(0))
         output = torch.stack(output)
-        output_samples = rearrange(output, "b c t -> c (b t)").unsqueeze(0)
 
         # log_wandb_audio_batch(
         #     logger=self.logger,
@@ -125,8 +145,9 @@ class RemFXChainInference(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         x, y, _, _ = batch  # x, y = (B, C, T), (B, C, T)
-        # Random order
-        # random.shuffle(self.effect_order)
+        if self.shuffle_effect_order:
+            # Random order
+            random.shuffle(self.effect_order)
         loss, output = self.forward(batch, batch_idx, order=self.effect_order)
         # Crop target to match output
         if output.shape[-1] < y.shape[-1]:

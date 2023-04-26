@@ -69,3 +69,5 @@ inference_effects_ordering:
   - "RandomPedalboardChorus"
   - "RandomPedalboardDelay"
 num_bins: 1025
+inference_effects_shuffle: False
+inference_use_all_effect_models: False
