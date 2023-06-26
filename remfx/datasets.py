@@ -371,7 +371,7 @@ class EffectDataset(Dataset):
         wet_effect_names = torch.load(self.proc_root / str(idx) / "wet_effects.pt")
         input, sr = torchaudio.load(input_file)
         target, sr = torchaudio.load(target_file)
-        return (input, target, dry_effect_names, wet_effect_names)
+        return (target, target, dry_effect_names, wet_effect_names)
 
     def validate_effect_input(self):
         for effect in self.effects.values():

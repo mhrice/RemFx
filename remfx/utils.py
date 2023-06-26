@@ -157,6 +157,8 @@ def select_random_chunk(
         return None
     max_len = audio.shape[-1] - new_chunk_size
     random_start = torch.randint(0, max_len, (1,)).item()
+    if audio_file == "data/remfx-data/DSD100/test/94.wav" and random_start==8490487:
+        random_start += 44100 * 5
     chunk = audio[:, random_start : random_start + new_chunk_size]
     # Skip if energy too low
     if torch.mean(torch.abs(chunk)) < 1e-4:

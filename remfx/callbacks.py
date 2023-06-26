@@ -47,7 +47,7 @@ class AudioCallback(Callback):
     ):
         x, target, _, rem_fx_labels = batch
         # Only run on first batch
-        if batch_idx == 0 and self.log_audio:
+        if self.log_audio:
             with torch.no_grad():
                 # Avoids circular import
                 from remfx.models import RemFXChainInference

@@ -158,8 +158,6 @@ class RemFXChainInference(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-                print(f"Input_{metric}", negate * self.metrics[metric](x, y))
-                print(f"test_{metric}", negate * self.metrics[metric](output, y))
                 self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
             self.output_str += "\n"
         return loss
@@ -276,8 +274,6 @@ class RemFX(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-                print(f"Input_{metric}", negate * self.metrics[metric](x, y))
-                print(f"test_{metric}", negate * self.metrics[metric](output, y))
                 self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
             self.output_str += "\n"
         return loss
