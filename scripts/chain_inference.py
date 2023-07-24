@@ -15,7 +15,7 @@ def main(cfg: DictConfig):
         pl.seed_everything(cfg.seed)
     log.info(f"Instantiating datamodule <{cfg.datamodule._target_}>.")
     datamodule = hydra.utils.instantiate(cfg.datamodule, _convert_="partial")
-    log.info(f"Instantiating model <{cfg.model._target_}>.")
+    log.info("Instantiating Chain Inference Models")
     models = {}
     for effect in cfg.ckpts:
         model = hydra.utils.instantiate(cfg.ckpts[effect].model, _convert_="partial")
@@ -25,6 +25,16 @@ def main(cfg: DictConfig):
         model.load_state_dict(state_dict)
         model.to(device)
         models[effect] = model
+
+    classifier = None
+    if "classifier" in cfg:
+        log.info(f"Instantiating classifier <{cfg.classifier._target_}>.")
+        classifier = hydra.utils.instantiate(cfg.classifier, _convert_="partial")
+        ckpt_path = cfg.classifier_ckpt
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        state_dict = torch.load(ckpt_path, map_location=device)["state_dict"]
+        classifier.load_state_dict(state_dict)
+        classifier.to(device)
 
     callbacks = []
     if "callbacks" in cfg:
@@ -54,6 +64,9 @@ def main(cfg: DictConfig):
         sample_rate=cfg.sample_rate,
         num_bins=cfg.num_bins,
         effect_order=cfg.inference_effects_ordering,
+        classifier=classifier,
+        shuffle_effect_order=cfg.inference_effects_shuffle,
+        use_all_effect_models=cfg.inference_use_all_effect_models,
     )
     trainer.test(model=inference_model, datamodule=datamodule)
 

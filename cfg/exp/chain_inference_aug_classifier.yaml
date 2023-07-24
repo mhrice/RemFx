@@ -41,22 +41,41 @@ dcunet:
     fix_length_mode: "pad"
     sample_rate: ${sample_rate}
     num_bins: 1025
+
+classifier:
+  _target_: remfx.models.FXClassifier
+  lr: 3e-4
+  lr_weight_decay: 1e-3
+  sample_rate: ${sample_rate}
+  mixup: False
+  network:
+    _target_: remfx.classifier.Cnn14
+    num_classes: ${num_classes}
+    n_fft: 2048
+    hop_length: 512
+    n_mels: 128
+    sample_rate: ${sample_rate}
+    model_sample_rate: ${sample_rate}
+    specaugment: False
+classifier_ckpt: "ckpts/classifier.ckpt"
+
 ckpts:
   RandomPedalboardDistortion:
     model: ${model}
-    ckpt_path: "ckpts/demucs_distortion.ckpt"
+    ckpt_path: "ckpts/demucs_distortion_aug.ckpt"
   RandomPedalboardCompressor:
     model: ${model}
-    ckpt_path: "ckpts/demucs_compressor.ckpt"
+    ckpt_path: "ckpts/demucs_compressor_aug.ckpt"
   RandomPedalboardReverb:
     model: ${dcunet}
-    ckpt_path: "ckpts/dcunet_reverb.ckpt"
+    ckpt_path: "ckpts/dcunet_reverb_aug.ckpt"
   RandomPedalboardChorus:
     model: ${dcunet}
-    ckpt_path: "ckpts/dcunet_chorus.ckpt"
+    ckpt_path: "ckpts/dcunet_chorus_aug.ckpt"
   RandomPedalboardDelay:
     model: ${dcunet}
-    ckpt_path: "ckpts/dcunet_delay.ckpt"
+    ckpt_path: "ckpts/dcunet_delay_aug.ckpt"
+
 inference_effects_ordering:
   - "RandomPedalboardDistortion"
   - "RandomPedalboardCompressor"
