@@ -67,7 +67,7 @@ class RemFXChainInference(pl.LightningModule):
                 rem_fx_labels = torch.where(labels > threshold, 1.0, 0.0)
         if self.use_all_effect_models:
             effects_present = [
-                [ALL_EFFECTS[i] for i, effect in enumerate(effect_label) if effect]
+                [ALL_EFFECTS[i] for i, effect in enumerate(effect_label)]
                 for effect_label in rem_fx_labels
             ]
         else:
@@ -79,6 +79,7 @@ class RemFXChainInference(pl.LightningModule):
                 ]
                 for effect_label in rem_fx_labels
             ]
+
         output = []
         # input_samples = rearrange(x, "b c t -> c (b t)").unsqueeze(0)
         # target_samples = rearrange(y, "b c t -> c (b t)").unsqueeze(0)
@@ -179,8 +180,8 @@ class RemFXChainInference(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-                print(f"Input_{metric}", negate * self.metrics[metric](x, y))
-                print(f"test_{metric}", negate * self.metrics[metric](output, y))
+                # print(f"Input_{metric}", negate * self.metrics[metric](x, y))
+                # print(f"test_{metric}", negate * self.metrics[metric](output, y))
                 self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
             self.output_str += "\n"
         return loss
@@ -297,8 +298,8 @@ class RemFX(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-                print(f"Input_{metric}", negate * self.metrics[metric](x, y))
-                print(f"test_{metric}", negate * self.metrics[metric](output, y))
+                # print(f"Input_{metric}", negate * self.metrics[metric](x, y))
+                # print(f"test_{metric}", negate * self.metrics[metric](output, y))
                 self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
             self.output_str += "\n"
         return loss
