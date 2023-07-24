@@ -471,13 +471,20 @@ def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
     """
     batch_size = x.size(0)
     if alpha > 0:
-        lam = np.random.beta(alpha, alpha)
+        # lam = np.random.beta(alpha, alpha)
+        lam = np.random.uniform(0.25, 0.75, batch_size)
+        lam = torch.from_numpy(lam).float().to(x.device).view(batch_size, 1, 1)
     else:
         lam = 1
 
-    index = torch.randperm(batch_size).to(x.device)
-    mixed_x = lam * x + (1 - lam) * x[index, :]
-    mixed_y = lam * y + (1 - lam) * y[index, :]
+    print(lam)
+    if np.random.rand() > 0.5:
+        index = torch.randperm(batch_size).to(x.device)
+        mixed_x = lam * x + (1 - lam) * x[index, :]
+        mixed_y = torch.logical_or(y, y[index, :]).float()
+    else:
+        mixed_x = x
+        mixed_y = y
 
     return mixed_x, mixed_y, lam
 
@@ -502,38 +509,52 @@ class FXClassifier(pl.LightningModule):
         self.label_smoothing = label_smoothing
 
         self.loss_fn = torch.nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+        self.loss_fn = torch.nn.BCELoss()
 
-        self.train_f1 = torchmetrics.classification.MultilabelF1Score(
-            5, average="none", multidim_average="global"
-        )
-        self.val_f1 = torchmetrics.classification.MultilabelF1Score(
-            5, average="none", multidim_average="global"
-        )
-        self.test_f1 = torchmetrics.classification.MultilabelF1Score(
-            5, average="none", multidim_average="global"
-        )
+        if False:
+            self.train_f1 = torchmetrics.classification.MultilabelF1Score(
+                5, average="none", multidim_average="global"
+            )
+            self.val_f1 = torchmetrics.classification.MultilabelF1Score(
+                5, average="none", multidim_average="global"
+            )
+            self.test_f1 = torchmetrics.classification.MultilabelF1Score(
+                5, average="none", multidim_average="global"
+            )
 
-        self.train_f1_avg = torchmetrics.classification.MultilabelF1Score(
-            5, threshold=0.5, average="macro", multidim_average="global"
-        )
-        self.val_f1_avg = torchmetrics.classification.MultilabelF1Score(
-            5, threshold=0.5, average="macro", multidim_average="global"
-        )
-        self.test_f1_avg = torchmetrics.classification.MultilabelF1Score(
-            5, threshold=0.5, average="macro", multidim_average="global"
-        )
+            self.train_f1_avg = torchmetrics.classification.MultilabelF1Score(
+                5, threshold=0.5, average="macro", multidim_average="global"
+            )
+            self.val_f1_avg = torchmetrics.classification.MultilabelF1Score(
+                5, threshold=0.5, average="macro", multidim_average="global"
+            )
+            self.test_f1_avg = torchmetrics.classification.MultilabelF1Score(
+                5, threshold=0.5, average="macro", multidim_average="global"
+            )
 
-        self.metrics = {
-            "train": self.train_f1,
-            "valid": self.val_f1,
-            "test": self.test_f1,
-        }
+            self.metrics = {
+                "train": self.train_acc,
+                "valid": self.val_acc,
+                "test": self.test_acc,
+            }
 
-        self.avg_metrics = {
-            "train": self.train_f1_avg,
-            "valid": self.val_f1_avg,
-            "test": self.test_f1_avg,
-        }
+            self.avg_metrics = {
+                "train": self.train_f1_avg,
+                "valid": self.val_f1_avg,
+                "test": self.test_f1_avg,
+            }
+
+        self.metrics = torch.nn.ModuleDict()
+        for effect in self.effects:
+            self.metrics[f"train_{effect}_acc"] = torchmetrics.classification.Accuracy(
+                task="binary"
+            )
+            self.metrics[f"valid_{effect}_acc"] = torchmetrics.classification.Accuracy(
+                task="binary"
+            )
+            self.metrics[f"test_{effect}_acc"] = torchmetrics.classification.Accuracy(
+                task="binary"
+            )
 
     def forward(self, x: torch.Tensor, train: bool = False):
         return self.network(x, train=train)
@@ -544,15 +565,15 @@ class FXClassifier(pl.LightningModule):
 
         if mode == "train" and self.mixup:
             x_mixed, label_mixed, lam = mixup(x, wet_label)
-            pred_label = self(x_mixed, train)
-            loss = self.loss_fn(pred_label, label_mixed)
-            print(torch.sigmoid(pred_label[0, ...]))
-            print(label_mixed[0, ...])
+            outputs = self(x_mixed, train)
+            loss = 0
+            for idx, output in enumerate(outputs):
+                loss += self.loss_fn(output.squeeze(-1), label_mixed[..., idx])
         else:
-            pred_label = self(x, train)
-            loss = self.loss_fn(pred_label, wet_label)
-            print(torch.where(torch.sigmoid(pred_label[0, ...]) > 0.5, 1.0, 0.0).long())
-            print(wet_label.long()[0, ...])
+            outputs = self(x, train)
+            loss = 0
+            for idx, output in enumerate(outputs):
+                loss += self.loss_fn(output.squeeze(-1), wet_label[..., idx])
 
         self.log(
             f"{mode}_loss",
@@ -564,26 +585,25 @@ class FXClassifier(pl.LightningModule):
             sync_dist=True,
         )
 
-        metrics = self.metrics[mode](torch.sigmoid(pred_label), wet_label.long())
-
+        acc_metrics = []
         for idx, effect_name in enumerate(self.effects):
+            acc_metric = self.metrics[f"{mode}_{effect_name}_acc"](
+                outputs[idx].squeeze(-1), wet_label[..., idx]
+            )
             self.log(
-                f"{mode}_f1_{effect_name}",
-                metrics[idx],
+                f"{mode}_{effect_name}_acc",
+                acc_metric,
                 on_step=True,
                 on_epoch=True,
                 prog_bar=True,
                 logger=True,
                 sync_dist=True,
             )
-
-        avg_metrics = self.avg_metrics[mode](
-            torch.sigmoid(pred_label), wet_label.long()
-        )
+            acc_metrics.append(acc_metric)
 
         self.log(
-            f"{mode}_f1_avg",
-            avg_metrics,
+            f"{mode}_avg_acc",
+            torch.mean(torch.stack(acc_metrics)),
             on_step=True,
             on_epoch=True,
             prog_bar=True,
