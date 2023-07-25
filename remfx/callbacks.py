@@ -92,6 +92,8 @@ def log_wandb_audio_batch(
     caption: str = "",
     max_items: int = 10,
 ):
+    if type(logger) != pl.loggers.WandbLogger:
+        return
     num_items = samples.shape[0]
     samples = rearrange(samples, "b c t -> b t c")
     for idx in range(num_items):

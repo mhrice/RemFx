@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 NAME = "remfx"
 DESCRIPTION = "Universal audio effect removal"
-URL = ""
+URL = "https://github.com/mhrice/RemFx"
 EMAIL = "m.rice@se22.qmul.ac.uk"
 AUTHOR = "Matthew Rice"
 REQUIRES_PYTHON = ">=3.8.0"

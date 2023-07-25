@@ -52,6 +52,9 @@ def log_hyperparameters(
     if not trainer.logger:
         return
 
+    if type(trainer.logger) == pl.loggers.CSVLogger:
+        return
+
     hparams = {}
 
     # choose which parts of hydra config will be saved to loggers

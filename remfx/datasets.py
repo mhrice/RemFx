@@ -18,7 +18,6 @@ from auraloss.freq import MultiResolutionSTFTLoss
 
 STFT_THRESH = 1e-3
 ALL_EFFECTS = effect_lib.Pedalboard_Effects
-# print(ALL_EFFECTS)
 
 
 vocalset_splits = {

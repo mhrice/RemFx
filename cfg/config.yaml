@@ -97,20 +97,24 @@ datamodule:
     render_files: ${render_files}
     render_root: ${render_root}
 
-  batch_size: 16
+  train_batch_size: 16
+  test_batch_size: 1
   num_workers: 8
   pin_memory: True
   persistent_workers: True
 
+# logger:
+#   _target_: pytorch_lightning.loggers.WandbLogger
+#   project: ${oc.env:WANDB_PROJECT}
+#   entity: ${oc.env:WANDB_ENTITY}
+#   # offline: False  # set True to store all logs only locally
+#   job_type: "train"
+#   group: ""
+#   save_dir: "."
+#   log_model: True
 logger:
-  _target_: pytorch_lightning.loggers.WandbLogger
-  project: ${oc.env:WANDB_PROJECT}
-  entity: ${oc.env:WANDB_ENTITY}
-  # offline: False  # set True to store all logs only locally
-  job_type: "train"
-  group: ""
+  _target_: pytorch_lightning.loggers.CSVLogger
   save_dir: "."
-  log_model: True
 
 trainer:
   _target_: pytorch_lightning.Trainer

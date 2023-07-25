@@ -51,7 +51,7 @@ class RemFXChainInference(pl.LightningModule):
         self.output_str = "IN_SISDR,OUT_SISDR,IN_STFT,OUT_STFT\n"
         self.use_all_effect_models = use_all_effect_models
 
-    def forward(self, batch, batch_idx, order=None):
+    def forward(self, batch, batch_idx, order=None, verbose=False):
         x, y, _, rem_fx_labels = batch
         # Use chain of effects defined in config
         if order:
@@ -79,25 +79,19 @@ class RemFXChainInference(pl.LightningModule):
                 ]
                 for effect_label in rem_fx_labels
             ]
+            effects_present_name = [
+                [
+                    ALL_EFFECTS[i].__name__
+                    for i, effect in enumerate(effect_label)
+                    if effect == 1.0
+                ]
+                for effect_label in rem_fx_labels
+            ]
+            if verbose:
+                print("Detected effects:", effects_present_name[0])
+                print("Removing effects...")
 
         output = []
-        # input_samples = rearrange(x, "b c t -> c (b t)").unsqueeze(0)
-        # target_samples = rearrange(y, "b c t -> c (b t)").unsqueeze(0)
-
-        # log_wandb_audio_batch(
-        #     logger=self.logger,
-        #     id="input_effected_audio",
-        #     samples=input_samples.cpu(),
-        #     sampling_rate=self.sample_rate,
-        #     caption="Input Data",
-        # )
-        # log_wandb_audio_batch(
-        #     logger=self.logger,
-        #     id="target_audio",
-        #     samples=target_samples.cpu(),
-        #     sampling_rate=self.sample_rate,
-        #     caption="Target Data",
-        # )
         with torch.no_grad():
             for i, (elem, effects_list) in enumerate(zip(x, effects_present)):
                 elem = elem.unsqueeze(0)  # Add batch dim
@@ -107,40 +101,12 @@ class RemFXChainInference(pl.LightningModule):
                     effect for effect in effects_order if effect in effect_list_names
                 ]
 
-                # log_wandb_audio_batch(
-                #     logger=self.logger,
-                #     id=f"{i}_Before",
-                #     samples=elem.cpu(),
-                #     sampling_rate=self.sample_rate,
-                #     caption=effects,
-                # )
                 for effect in effects:
                     # Sample the model
                     elem = self.model[effect].model.sample(elem)
-                #     log_wandb_audio_batch(
-                #         logger=self.logger,
-                #         id=f"{i}_{effect}",
-                #         samples=elem.cpu(),
-                #         sampling_rate=self.sample_rate,
-                #         caption=effects,
-                #     )
-                # log_wandb_audio_batch(
-                #     logger=self.logger,
-                #     id=f"{i}_After",
-                #     samples=elem.cpu(),
-                #     sampling_rate=self.sample_rate,
-                #     caption=effects,
-                # )
                 output.append(elem.squeeze(0))
         output = torch.stack(output)
 
-        # log_wandb_audio_batch(
-        #     logger=self.logger,
-        #     id="output_audio",
-        #     samples=output_samples.cpu(),
-        #     sampling_rate=self.sample_rate,
-        #     caption="Output Data",
-        # )
         loss = self.mrstftloss(output, y) + self.l1loss(output, y) * 100
         return loss, output
 

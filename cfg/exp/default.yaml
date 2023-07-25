@@ -24,5 +24,6 @@ effects_to_remove:
   - delay
   - distortion
 datamodule:
-  batch_size: 16
+  train_batch_size: 16
+  test_batch_size: 1
   num_workers: 8

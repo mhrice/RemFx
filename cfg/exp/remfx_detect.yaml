@@ -6,9 +6,9 @@ seed: 12345
 sample_rate: 48000
 chunk_size: 262144 # 5.5s
 logs_dir: "./logs"
-render_root: "/scratch/EffectSet"
-accelerator: "gpu"
+accelerator: "cpu"
 log_audio: True
+
 # Effects
 num_kept_effects: [0,0] # [min, max]
 num_removed_effects: [0,5] # [min, max]
@@ -17,21 +17,16 @@ shuffle_removed_effects: True
 num_classes: 5
 effects_to_keep:
 effects_to_remove:
-  - distortion
   - compressor
   - reverb
   - chorus
   - delay
+  - distortion
 datamodule:
-  train_batch_size: 1
+  train_batch_size: 16
   test_batch_size: 1
   num_workers: 8
-  train_dataset: None
-  val_dataset: None
-  test_dataset:
-    _target_: remfx.datasets.InferenceDataset
-    root: ${oc.env:DATASET_ROOT}
-    sample_rate: ${sample_rate}
+
 dcunet:
   _target_: remfx.models.RemFX
   lr: 1e-4
@@ -47,6 +42,24 @@ dcunet:
     fix_length_mode: "pad"
     sample_rate: ${sample_rate}
     num_bins: 1025
+
+classifier:
+  _target_: remfx.models.FXClassifier
+  lr: 3e-4
+  lr_weight_decay: 1e-3
+  sample_rate: ${sample_rate}
+  mixup: False
+  network:
+    _target_: remfx.classifier.Cnn14
+    num_classes: ${num_classes}
+    n_fft: 2048
+    hop_length: 512
+    n_mels: 128
+    sample_rate: ${sample_rate}
+    model_sample_rate: ${sample_rate}
+    specaugment: True
+classifier_ckpt: "ckpts/classifier.ckpt"
+
 ckpts:
   RandomPedalboardDistortion:
     model: ${model}
@@ -63,6 +76,7 @@ ckpts:
   RandomPedalboardDelay:
     model: ${dcunet}
     ckpt_path: "ckpts/dcunet_delay_aug.ckpt"
+
 inference_effects_ordering:
   - "RandomPedalboardDistortion"
   - "RandomPedalboardCompressor"
@@ -70,5 +84,7 @@ inference_effects_ordering:
   - "RandomPedalboardChorus"
   - "RandomPedalboardDelay"
 num_bins: 1025
-inference_effects_shuffle: False
+inference_effects_shuffle: True
 inference_use_all_effect_models: False
+audio_input: ""
+output_path: "./output.wav"

@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /model: demucs
+  - override /model: cls_panns_48k
   - override /effects: all
 seed: 12345
 sample_rate: 48000
