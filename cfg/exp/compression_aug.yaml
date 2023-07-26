@@ -7,7 +7,7 @@ sample_rate: 48000
 chunk_size: 262144 # 5.5s
 logs_dir: "./logs"
 render_files: True
-render_root: "/scratch/EffectSet"
+
 accelerator: "gpu"
 log_audio: True
 # Effects

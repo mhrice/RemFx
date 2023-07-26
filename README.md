@@ -1,6 +1,10 @@
 # General Purpose Audio Effect Removal
-# About
-TBD. Add photo. Add paper link.
+Removing multiple audio effects from multiple sources using compositional audio effect removal and source separation and speech enhancement models.
+
+This repo contains the code for the paper [General Purpose Audio Effect Removal](https://arxiv.org/abs/2110.00484). (Todo: Link broken, Add video, Add img)
+
+
+
 # Setup
 ```
 git clone https://github.com/mhrice/RemFx.git
@@ -8,6 +12,7 @@ git submodule update --init --recursive
 pip install . umx
 ```
 # Usage
+This repo can be used for many different tasks. Here are some examples.
 ## Run RemFX Detect on a single file
 ```
 ./download_checkpoints.sh
@@ -21,24 +26,25 @@ unzip RemFX_eval_dataset.zip
 
 ## Download the datasets used in the paper
 ```
-python scripts/download.py vocalset guitarset idmt-smt-guitar idmt-smt-bass idmt-smt-drums
+python scripts/download.py vocalset guitarset idmt-smt-bass idmt-smt-drums
 ```
+By default, the datasets are downloaded to `./data/remfx-data`. To change this, pass `--output_dir={path/to/datasets}` to `download.py`
 
-
-## Training
-Before training, it is important that you have downloaded the datasets (see above).
-This project uses [hydra](https://hydra.cc/) for configuration management. All experiments are defined in `cfg/exp/`. To train with an existing experiment, first run
+Then set the dataset root :
 ```
 export DATASET_ROOT={path/to/datasets}
 ```
-Then:
+
+## Training
+Before training, it is important that you have downloaded the datasets (see above) and set DATASET_ROOT.
+This project uses the [pytorch-lightning](https://www.pytorchlightning.ai/index.html) framework and [hydra](https://hydra.cc/) for configuration management. All experiments are defined in `cfg/exp/`. To train with an existing experiment run
 ```
 python scripts/train.py +exp={experiment_name}
 ```
 
 Here are some selected experiment types from the paper, which use different datasets and configurations. See `cfg/exp/` for a full list of experiments and parameters.
 
-| Experiment Type         | config name  | example          |
+| Experiment Type         | Config Name  | Example          |
 | ----------------------- | ------------ | ---------------- |
 | Effect-specific         | {effect}     | +exp=chorus      |
 | Effect-specific + FXAug | {effect}_aug | +exp=chorus_aug  |
@@ -48,6 +54,16 @@ Here are some selected experiment types from the paper, which use different data
 
 To change the configuration, simply edit the experiment file, or override the configuration on the command line. A description of some of these variables is in the Misc. section below.
 You can also create a custom experiment by creating a new experiment file in `cfg/exp/` and overriding the default parameters in `config.yaml`.
+
+At the end of training, the train script will automatically evaluate the test set using the best checkpoint (by validation loss). To evaluate a specific checkpoint, run
+
+```
+python test.py +exp={experiment_name} ckpt_path={path/to/checkpoint}
+```
+
+If you have generated the dataset separately from training, be sure to set `render_files=False` in the config or command-line, and set `render_root={path_to_dataset}` if it is in a custom location.
+
+Also note that the training assumes you have a GPU. To train on CPU, set `accelerator=null` in the config or command-line.
 
 ## Evaluate models on the General Purpose Audio Effect Removal evaluation dataset
 First download the dataset (see above).
@@ -70,9 +86,15 @@ Download checkpoints from [here](https://zenodo.org/record/8179396), or see the 
 
 
 ## Generate datasets used in the paper
+Before generating datasets, it is important that you have downloaded the datasets (see above) and set DATASET_ROOT.
+
+To generate one of the datasets used in the paper, it is as simple as running a training job with a particular config. For example, to generate the `chorus` FXAug dataset, which includes files with 5 possible effects, up to 4 kept effects (distortion, reverb, compression, delay), and 1 removed effects (chorus), run
 ```
+python scripts/train.py +exp=chorus_aug
 ```
-Note that by default, files are rendered to `input_dir / processed / {string_of_effects} / {train|val|test}`.
+
+See the Misc. section below for a description of the parameters.
+By default, files are rendered to `{render_root} / processed / {string_of_effects} / {train|val|test}`.
 
 ## Evaluate with a custom directory
 Assumes directory is structured as
@@ -86,21 +108,27 @@ Assumes directory is structured as
         - file2.wav
         - file3.wav
 
-Change root path in `shell_vars.sh` and `source shell_vars.sh`
+First set the dataset root:
+```
+export DATASET_ROOT={path/to/datasets}
+```
 
-`python scripts/chain_inference.py +exp=chain_inference_custom`
+Then run
+```
+python scripts/chain_inference.py +exp=chain_inference_custom
+```
 
 # Misc.
 ## Experimental parameters
 Some relevant training parameters descriptions
 - `num_kept_effects={[min, max]}` range of <b> Kept </b> effects to apply to each file. Inclusive.
 - `num_removed_effects={[min, max]}` range of <b> Removed </b> effects to apply to each file. Inclusive.
-- `model={model}` architecture to use (see 'Models')
+- `model={model}` architecture to use (see 'Effect Removal Models/Effect Classification Models')
 - `effects_to_keep={[effect]}` Effects to apply but not remove (see 'Effects')
 - `effects_to_remove={[effect]}` Effects to remove (see 'Effects')
 - `accelerator=null/'gpu'` Use GPU (1 device) (default: null)
 - `render_files=True/False` Render files. Disable to skip rendering stage (default: True)
-- `render_root={path/to/dir}`. Root directory to render files to (default: DATASET_ROOT)
+- `render_root={path/to/dir}`. Root directory to render files to (default: ./data)
 
 ### Effect Removal Models
 - `umx`
@@ -121,10 +149,3 @@ Some relevant training parameters descriptions
 - `distortion`
 - `reverb`
 - `delay`
-
-
-
-
-
-
-

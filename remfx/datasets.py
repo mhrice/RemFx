@@ -44,16 +44,6 @@ vocalset_splits = {
 }
 
 guitarset_splits = {"train": ["00", "01", "02", "03"], "val": ["04"], "test": ["05"]}
-idmt_guitar_splits = {
-    "train": ["classical", "country_folk", "jazz", "latin", "metal", "pop"],
-    "val": ["reggae", "ska"],
-    "test": ["rock", "blues"],
-}
-idmt_bass_splits = {
-    "train": ["BE", "BEQ"],
-    "val": ["VIF"],
-    "test": ["VIS"],
-}
 dsd_100_splits = {
     "train": ["train"],
     "val": ["val"],
@@ -92,36 +82,6 @@ def locate_files(root: str, mode: str):
         ]
         print(f"Found {len(files)} files in GuitarSet {mode}.")
         file_list.append(sorted(files))
-    # # ------------------------- IDMT-SMT-GUITAR -------------------------
-    # idmt_smt_guitar_dir = os.path.join(root, "IDMT-SMT-GUITAR_V2")
-    # if os.path.isdir(idmt_smt_guitar_dir):
-    #     files = glob.glob(
-    #         os.path.join(
-    #             idmt_smt_guitar_dir, "IDMT-SMT-GUITAR_V2", "dataset4", "**", "*.wav"
-    #         ),
-    #         recursive=True,
-    #     )
-    #     files = [
-    #         f
-    #         for f in files
-    #         if os.path.basename(f).split("_")[0] in idmt_guitar_splits[mode]
-    #     ]
-    #     file_list.append(sorted(files))
-    #     print(f"Found {len(files)} files in IDMT-SMT-Guitar {mode}.")
-    # ------------------------- IDMT-SMT-BASS -------------------------
-    # idmt_smt_bass_dir = os.path.join(root, "IDMT-SMT-BASS")
-    # if os.path.isdir(idmt_smt_bass_dir):
-    #     files = glob.glob(
-    #         os.path.join(idmt_smt_bass_dir, "**", "*.wav"),
-    #         recursive=True,
-    #     )
-    #     files = [
-    #         f
-    #         for f in files
-    #         if os.path.basename(os.path.dirname(f)) in idmt_bass_splits[mode]
-    #     ]
-    #     file_list.append(sorted(files))
-    #     print(f"Found {len(files)} files in IDMT-SMT-Bass {mode}.")
     # ------------------------- DSD100 ---------------------------------
     dsd_100_dir = os.path.join(root, "DSD100")
     if os.path.isdir(dsd_100_dir):

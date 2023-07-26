@@ -18,8 +18,6 @@ def process_dataset(dataset_dir: str, output_dir: str):
         pass
     elif dataset_dir == "audio_mono-mic":
         pass
-    elif dataset_dir == "IDMT-SMT-GUITAR_V2":
-        pass
     elif dataset_dir == "IDMT-SMT-BASS":
         pass
     elif dataset_dir == "IDMT-SMT-DRUMS-V2":
@@ -69,23 +67,25 @@ if __name__ == "__main__":
         choices=[
             "vocalset",
             "guitarset",
-            "idmt-smt-guitar",
             "dsd100",
             "idmt-smt-drums",
         ],
         nargs="+",
     )
+    parser.add_argument("--output_dir", default="./data/remfx-data")
     args = parser.parse_args()
+
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
 
     dataset_urls = {
         "vocalset": "https://zenodo.org/record/1442513/files/VocalSet1-2.zip",
         "guitarset": "https://zenodo.org/record/3371780/files/audio_mono-mic.zip",
-        "IDMT-SMT-GUITAR_V2": "https://zenodo.org/record/7544110/files/IDMT-SMT-GUITAR_V2.zip",
         "DSD100": "http://liutkus.net/DSD100.zip",
         "IDMT-SMT-DRUMS-V2": "https://zenodo.org/record/7544164/files/IDMT-SMT-DRUMS-V2.zip",
     }
 
     for dataset_name, dataset_url in dataset_urls.items():
         if dataset_name in args.dataset_names:
-            download_zip_dataset(dataset_url, "~/data/remfx-data")
-            process_dataset(dataset_name, "~/data/remfx-data")
+            download_zip_dataset(dataset_url, args.output_dir)
+            process_dataset(dataset_name, args.ou)

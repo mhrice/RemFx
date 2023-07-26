@@ -9,11 +9,9 @@ from auraloss.time import SISDRLoss
 from auraloss.freq import MultiResolutionSTFTLoss
 from umx.openunmix.model import OpenUnmix, Separator
 
-from remfx.utils import FADLoss, spectrogram
+from remfx.utils import spectrogram
 from remfx.tcn import TCN
 from remfx.utils import causal_crop
-from remfx.callbacks import log_wandb_audio_batch
-from einops import rearrange
 from remfx import effects
 import asteroid
 import random
@@ -148,13 +146,14 @@ class RemFXChainInference(pl.LightningModule):
                 )
                 # print(f"Input_{metric}", negate * self.metrics[metric](x, y))
                 # print(f"test_{metric}", negate * self.metrics[metric](output, y))
-                self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
-            self.output_str += "\n"
+                # self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
+            # self.output_str += "\n"
         return loss
 
     def on_test_end(self) -> None:
-        with open("output.csv", "w") as f:
-            f.write(self.output_str)
+        pass
+        # with open("output.csv", "w") as f:
+        # f.write(self.output_str)
 
     def sample(self, batch):
         return self.forward(batch, 0)[1]
@@ -266,13 +265,14 @@ class RemFX(pl.LightningModule):
                 )
                 # print(f"Input_{metric}", negate * self.metrics[metric](x, y))
                 # print(f"test_{metric}", negate * self.metrics[metric](output, y))
-                self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
-            self.output_str += "\n"
+                # self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
+            # self.output_str += "\n"
         return loss
 
     def on_test_end(self) -> None:
-        with open("output.csv", "w") as f:
-            f.write(self.output_str)
+        pass
+        # with open("output.csv", "w") as f:
+        # f.write(self.output_str)
 
 
 class OpenUnmixModel(nn.Module):
