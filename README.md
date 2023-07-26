@@ -58,14 +58,14 @@ You can also create a custom experiment by creating a new experiment file in `cf
 At the end of training, the train script will automatically evaluate the test set using the best checkpoint (by validation loss). If epoch 0 is not finished, it will throw an error. To evaluate a specific checkpoint, run
 
 ```
-python scripts/test.py +exp={experiment_name} +ckpt_path={path/to/checkpoint} render_files=False
+python scripts/test.py +exp={experiment_name} +ckpt_path="{path/to/checkpoint}" render_files=False
 ```
 
 The checkpoints will be saved in `./logs/ckpts/{timestamp}`
 Metrics and hyperparams will be logged in `./lightning_logs/{timestamp}`
 
 By default, the dataset needed for the experiment is generated before training.
-If you have generated the dataset separately (see Generate datasets used in the paper), be sure to set `render_files=False` in the config or command-line, and set `render_root={path_to_dataset}` if it is in a custom location.
+If you have generated the dataset separately (see Generate datasets used in the paper), be sure to set `render_files=False` in the config or command-line, and set `render_root={path/to/dataset}` if it is in a custom location.
 
 Also note that the training assumes you have a GPU. To train on CPU, set `accelerator=null` in the config or command-line.
 
@@ -119,7 +119,7 @@ python scripts/generate_dataset.py +exp=chorus_aug
 See the Misc. section below for a description of the parameters.
 By default, files are rendered to `{render_root} / processed / {string_of_effects} / {train|val|test}`.
 
-If training, this process will be done automatically at the start of training. To disable this, set `render_files=False` in the config or command-line, and set `render_root={path_to_dataset}` if it is in a custom location.
+If training, this process will be done automatically at the start of training. To disable this, set `render_files=False` in the config or command-line, and set `render_root={path/to/dataset}` if it is in a custom location.
 
 # Misc.
 ## Experimental parameters
