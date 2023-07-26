@@ -48,9 +48,11 @@ def main(cfg: DictConfig):
     audio = audio.mean(0, keepdim=True)
     # Add dimension for batch
     audio = audio.unsqueeze(0)
+    audio = audio.to(device)
     batch = [audio, audio, None, None]
 
     _, y = inference_model(batch, 0, verbose=True)
+    y = y.cpu()
     if "output_path" in cfg:
         output_path = cfg.output_path
     else:
