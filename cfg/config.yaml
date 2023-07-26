@@ -63,7 +63,7 @@ datamodule:
     shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
     render_root: ${render_root}
-    parallel: True
+    parallel: False
   val_dataset:
     _target_: remfx.datasets.EffectDataset
     total_chunks: 1000
@@ -80,6 +80,7 @@ datamodule:
     shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
     render_root: ${render_root}
+    parallel: False
   test_dataset:
     _target_: remfx.datasets.EffectDataset
     total_chunks: 1000
@@ -96,6 +97,7 @@ datamodule:
     shuffle_removed_effects: ${shuffle_removed_effects}
     render_files: ${render_files}
     render_root: ${render_root}
+    parallel: False
 
   train_batch_size: 16
   test_batch_size: 1
@@ -115,6 +117,7 @@ datamodule:
 logger:
   _target_: pytorch_lightning.loggers.CSVLogger
   save_dir: "."
+  version: ${now:%Y-%m-%d-%H-%M-%S}
 
 trainer:
   _target_: pytorch_lightning.Trainer

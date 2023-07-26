@@ -83,7 +83,7 @@ def locate_files(root: str, mode: str):
         print(f"Found {len(files)} files in GuitarSet {mode}.")
         file_list.append(sorted(files))
     # ------------------------- DSD100 ---------------------------------
-    dsd_100_dir = os.path.join(root, "DSD100")
+    dsd_100_dir = os.path.join(root, "DSD100/DSD100")
     if os.path.isdir(dsd_100_dir):
         files = glob.glob(
             os.path.join(dsd_100_dir, mode, "**", "*.wav"),
@@ -427,7 +427,13 @@ class EffectDataset(Dataset):
                     chunk = None
                     random_dataset_choice = random.choice(self.files)
                     while chunk is None:
-                        random_file_choice = random.choice(random_dataset_choice)
+                        try:
+                            random_file_choice = random.choice(random_dataset_choice)
+                        except IndexError:
+                            print("IndexError")
+                            print(random_dataset_choice)
+                            print(random_file_choice)
+                            raise IndexError
                         chunk = select_random_chunk(
                             random_file_choice, self.chunk_size, self.sample_rate
                         )
@@ -572,7 +578,7 @@ class EffectDataset(Dataset):
             normalized_wet = self.normalize(wet)
 
             # Check STFT, pick different effects if necessary
-            stft = self.mrstft(normalized_wet, normalized_dry)
+            stft = self.mrstft(normalized_wet.unsqueeze(0), normalized_dry.unsqueeze(0))
         return normalized_dry, normalized_wet, dry_labels_tensor, wet_labels_tensor
 
 

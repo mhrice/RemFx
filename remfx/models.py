@@ -4,7 +4,6 @@ import torchmetrics
 import pytorch_lightning as pl
 from torch import Tensor, nn
 from torchaudio.models import HDemucs
-from audio_diffusion_pytorch import DiffusionModel
 from auraloss.time import SISDRLoss
 from auraloss.freq import MultiResolutionSTFTLoss
 from umx.openunmix.model import OpenUnmix, Separator
@@ -341,21 +340,6 @@ class DemucsModel(nn.Module):
 
     def sample(self, x: Tensor) -> Tensor:
         return self.model(x).squeeze(1)
-
-
-class DiffusionGenerationModel(nn.Module):
-    def __init__(self, n_channels: int = 1):
-        super().__init__()
-        self.model = DiffusionModel(in_channels=n_channels)
-
-    def forward(self, batch):
-        x, target = batch
-        sampled_out = self.model.sample(x)
-        return self.model(x), sampled_out
-
-    def sample(self, x: Tensor, num_steps: int = 10) -> Tensor:
-        noise = torch.randn(x.shape).to(x)
-        return self.model.sample(noise, num_steps=num_steps)
 
 
 class DPTNetModel(nn.Module):

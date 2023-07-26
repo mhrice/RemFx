@@ -76,7 +76,6 @@ ckpts:
   RandomPedalboardDelay:
     model: ${dcunet}
     ckpt_path: "ckpts/dcunet_delay_aug.ckpt"
-
 inference_effects_ordering:
   - "RandomPedalboardDistortion"
   - "RandomPedalboardCompressor"
