@@ -1,7 +1,7 @@
 # General Purpose Audio Effect Removal
 Removing multiple audio effects from multiple sources using compositional audio effect removal and source separation and speech enhancement models.
 
-This repo contains the code for the paper [General Purpose Audio Effect Removal](https://arxiv.org/abs/2110.00484). (Todo: Link broken, Add video, Add img, citation)
+This repo contains the code for the paper [General Purpose Audio Effect Removal](https://arxiv.org/abs/2110.00484). (Todo: Link broken, Add video, Add img, citation, licence)
 
 
 # Setup
@@ -13,18 +13,18 @@ pip install -e . ./umx
 ```
 # Usage
 This repo can be used for many different tasks. Here are some examples.
-## Run RemFX Detect on a single file - []
+## Run RemFX Detect on a single file
 First, need to download the checkpoints from [zenodo](https://zenodo.org/record/8179396)
 ```
 ./download_checkpoints.sh
 ./remfx_detect.sh wet.wav -o dry.wav
 ```
-## Download the [General Purpose Audio Effect Removal evaluation datasets](https://zenodo.org/record/8183649/) - [x]
+## Download the [General Purpose Audio Effect Removal evaluation datasets](https://zenodo.org/record/8183649/)
 ```
 ./download_eval_datasets.sh
 ```
 
-## Download the starter datasets - [x]
+## Download the starter datasets
 ```
 python scripts/download.py vocalset guitarset dsd100 idmt-smt-drums
 ```
@@ -35,7 +35,7 @@ Then set the dataset root :
 export DATASET_ROOT={path/to/datasets}
 ```
 
-## Training - [x]
+## Training
 Before training, it is important that you have downloaded the starter datasets (see above) and set DATASET_ROOT.
 This project uses the [pytorch-lightning](https://www.pytorchlightning.ai/index.html) framework and [hydra](https://hydra.cc/) for configuration management. All experiments are defined in `cfg/exp/`. To train with an existing experiment run
 ```
@@ -69,7 +69,7 @@ If you have generated the dataset separately (see Generate datasets used in the 
 
 Also note that the training assumes you have a GPU. To train on CPU, set `accelerator=null` in the config or command-line.
 
-## Evaluate models on the General Purpose Audio Effect Removal evaluation datasets (Table 4 from the paper) - []
+## Evaluate models on the General Purpose Audio Effect Removal evaluation datasets (Table 4 from the paper)
 First download the General Purpose Audio Effect Removal evaluation datasets (see above).
 To use the pretrained RemFX model, download the checkpoints
 ```
@@ -105,7 +105,7 @@ Then run the evaluation script.
 The script assumes that RemFX_eval_datasets is in the top-level directory.
 Metrics and hyperparams will be logged in `./lightning_logs/{timestamp}`
 
-## Generate other datasets - [x]
+## Generate other datasets
 The datasets used in the experiments are customly generated from the starter datasets. In short, for each training/val/testing example, we select a random 5.5s segment from one of the starter datasets and apply a random number of effects to it. The number of effects applied is controlled by the `num_kept_effects` and `num_removed_effects` parameters. The effects applied are controlled by the `effects_to_keep` and `effects_to_remove` parameters.
 
 Before generating datasets, it is important that you have downloaded the starter datasets (see above) and set DATASET_ROOT.
@@ -155,7 +155,7 @@ Some relevant dataset/training parameters descriptions
 - `delay`
 
 # DO WE NEED THIS?
-## Evaluate RemFXwith a custom directory - []
+## Evaluate RemFXwith a custom directory
 Assumes directory is structured as
 - root
     - clean
