@@ -39,7 +39,7 @@ def main(cfg: DictConfig):
         use_all_effect_models=cfg.inference_use_all_effect_models,
     )
 
-    audio_file = "/Users/matthewrice/Desktop/clips/chipmunk.wav"
+    audio_file = cfg.audio_input
     print("Loading", audio_file)
     audio, sr = torchaudio.load(audio_file)
     # Resample
@@ -51,8 +51,12 @@ def main(cfg: DictConfig):
     batch = [audio, audio, None, None]
 
     _, y = inference_model(batch, 0, verbose=True)
-    print("Saving output to", cfg.output_path)
-    torchaudio.save(cfg.output_path, y[0], sample_rate=cfg.sample_rate)
+    if "output_path" in cfg:
+        output_path = cfg.output_path
+    else:
+        output_path = "./output.wav"
+    print("Saving output to", output_path)
+    torchaudio.save(output_path, y[0], sample_rate=cfg.sample_rate)
 
 
 if __name__ == "__main__":

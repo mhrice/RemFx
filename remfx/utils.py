@@ -3,7 +3,6 @@ from typing import List, Tuple
 import pytorch_lightning as pl
 from omegaconf import DictConfig
 from pytorch_lightning.utilities import rank_zero_only
-import numpy as np
 import torch
 import torchaudio
 from torch import nn

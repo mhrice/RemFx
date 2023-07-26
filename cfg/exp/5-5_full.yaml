@@ -12,7 +12,7 @@ accelerator: "gpu"
 log_audio: True
 # Effects
 num_kept_effects: [0,0] # [min, max]
-num_removed_effects: [5,5] # [min, max]
+num_removed_effects: [0,5] # [min, max]
 shuffle_kept_effects: True
 shuffle_removed_effects: True
 num_classes: 5

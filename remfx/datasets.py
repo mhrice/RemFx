@@ -578,6 +578,9 @@ class EffectDataset(Dataset):
             normalized_wet = self.normalize(wet)
 
             # Check STFT, pick different effects if necessary
+            if num_removed_effects == 0:
+                # No need to check if no effects removed
+                break
             stft = self.mrstft(normalized_wet.unsqueeze(0), normalized_dry.unsqueeze(0))
         return normalized_dry, normalized_wet, dry_labels_tensor, wet_labels_tensor
 

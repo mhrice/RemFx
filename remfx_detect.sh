@@ -33,7 +33,7 @@ done
 
 if [ -z "$output_path" ]
 then
-  python scripts/remfx_detect.py +exp=remfx_detect audio_input=$1
+  python scripts/remfx_detect.py +exp=remfx_detect +audio_input=$audio_input
   exit 0
 fi
-python scripts/remfx_detect.py +exp=remfx_detect audio_input=$1 output_path=$output_path
+python scripts/remfx_detect.py +exp=remfx_detect +audio_input=$audio_input +output_path=$output_path

@@ -1,3 +1,5 @@
+#! /bin/bash
+
 # make ckpts directory if not exist
 mkdir -p ckpts
 

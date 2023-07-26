@@ -6,7 +6,7 @@ seed: 12345
 sample_rate: 48000
 chunk_size: 262144 # 5.5s
 logs_dir: "./logs"
-accelerator: "cpu"
+accelerator: "gpu"
 log_audio: True
 
 # Effects
@@ -17,11 +17,11 @@ shuffle_removed_effects: True
 num_classes: 5
 effects_to_keep:
 effects_to_remove:
+  - distortion
   - compressor
   - reverb
   - chorus
   - delay
-  - distortion
 datamodule:
   train_batch_size: 16
   test_batch_size: 1
@@ -70,5 +70,3 @@ inference_effects_ordering:
 num_bins: 1025
 inference_effects_shuffle: True
 inference_use_all_effect_models: False
-audio_input: ""
-output_path: "./output.wav"
