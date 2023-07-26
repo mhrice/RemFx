@@ -1,7 +1,7 @@
 # General Purpose Audio Effect Removal
 Removing multiple audio effects from multiple sources using compositional audio effect removal and source separation and speech enhancement models.
 
-This repo contains the code for the paper [General Purpose Audio Effect Removal](https://arxiv.org/abs/2110.00484). (Todo: Link broken, Add video, Add img, citation, licence)
+This repo contains the code for the paper [General Purpose Audio Effect Removal](https://arxiv.org/abs/2110.00484). (Todo: Link broken, Add video, Add img, citation, license)
 
 
 # Setup
@@ -19,7 +19,7 @@ First, need to download the checkpoints from [zenodo](https://zenodo.org/record/
 ./download_checkpoints.sh
 ./remfx_detect.sh wet.wav -o dry.wav
 ```
-## Download the [General Purpose Audio Effect Removal evaluation datasets](https://zenodo.org/record/8183649/)
+## Download the [General Purpose Audio Effect Removal evaluation datasets](https://zenodo.org/record/8187288)
 ```
 ./download_eval_datasets.sh
 ```
@@ -89,14 +89,9 @@ To eval a custom monolithic model, first train a model (see Training)
 Then run the evaluation script, with the config used and checkpoint_path.
 ```
 ./eval.sh distortion_aug 0-0 -ckpt "logs/ckpts/2023-07-26-10-10-27/epoch\=05-valid_loss\=8.623.ckpt"
-./eval.sh distortion_aug 1-1 -ckpt "logs/ckpts/2023-07-26-10-10-27/epoch\=05-valid_loss\=8.623.ckpt"
-./eval.sh distortion_aug 2-2 -ckpt "logs/ckpts/2023-07-26-10-10-27/epoch\=05-valid_loss\=8.623.ckpt"
-./eval.sh distortion_aug 3-3 -ckpt "logs/ckpts/2023-07-26-10-10-27/epoch\=05-valid_loss\=8.623.ckpt"
-./eval.sh distortion_aug 4-4 -ckpt "logs/ckpts/2023-07-26-10-10-27/epoch\=05-valid_loss\=8.623.ckpt"
-./eval.sh distortion_aug 5-5 -ckpt "logs/ckpts/2023-07-26-10-10-27/epoch\=05-valid_loss\=8.623.ckpt"
 ```
 
-To eval a custom effect-specific model as part of the inference chain, first train a model (see Training), then edit `cfg/exp/remfx_{desired_configuration}.yaml` -> ckpts -> {effect}.
+To eval a custom effect-specific model as part of the inference chain, first train a model (see Training), then edit `cfg/exp/remfx_{desired_configuration}.yaml -> ckpts -> {effect}`.
 Then run the evaluation script.
 ```
 ./eval.sh remfx_detect 0-0
@@ -154,7 +149,7 @@ Some relevant dataset/training parameters descriptions
 - `reverb`
 - `delay`
 
-# DO WE NEED THIS?
+<!-- # DO WE NEED THIS?
 ## Evaluate RemFXwith a custom directory
 Assumes directory is structured as
 - root
@@ -175,4 +170,4 @@ export DATASET_ROOT={path/to/datasets}
 Then run
 ```
 python scripts/chain_inference.py +exp=chain_inference_custom
-```
+``` -->
