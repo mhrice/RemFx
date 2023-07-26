@@ -36,7 +36,7 @@ export DATASET_ROOT={path/to/datasets}
 ```
 
 ## Training
-Before training, it is important that you have downloaded the starter datasets (see above) and set DATASET_ROOT.
+Before training, it is important that you have downloaded the starter datasets (see above) and set `$DATASET_ROOT`.
 This project uses the [pytorch-lightning](https://www.pytorchlightning.ai/index.html) framework and [hydra](https://hydra.cc/) for configuration management. All experiments are defined in `cfg/exp/`. To train with an existing experiment run
 ```
 python scripts/train.py +exp={experiment_name}
@@ -103,7 +103,7 @@ Metrics and hyperparams will be logged in `./lightning_logs/{timestamp}`
 ## Generate other datasets
 The datasets used in the experiments are customly generated from the starter datasets. In short, for each training/val/testing example, we select a random 5.5s segment from one of the starter datasets and apply a random number of effects to it. The number of effects applied is controlled by the `num_kept_effects` and `num_removed_effects` parameters. The effects applied are controlled by the `effects_to_keep` and `effects_to_remove` parameters.
 
-Before generating datasets, it is important that you have downloaded the starter datasets (see above) and set DATASET_ROOT.
+Before generating datasets, it is important that you have downloaded the starter datasets (see above) and set `$DATASET_ROOT`.
 
 To generate one of the datasets used in the paper, use of the experiments defined in `cfg/exp/`.
 For example, to generate the `chorus` FXAug dataset, which includes files with 5 possible effects, up to 4 kept effects (distortion, reverb, compression, delay), and 1 removed effects (chorus), run
