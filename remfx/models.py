@@ -4,16 +4,13 @@ import torchmetrics
 import pytorch_lightning as pl
 from torch import Tensor, nn
 from torchaudio.models import HDemucs
-from audio_diffusion_pytorch import DiffusionModel
 from auraloss.time import SISDRLoss
 from auraloss.freq import MultiResolutionSTFTLoss
 from umx.openunmix.model import OpenUnmix, Separator
 
-from remfx.utils import FADLoss, spectrogram
+from remfx.utils import spectrogram
 from remfx.tcn import TCN
 from remfx.utils import causal_crop
-from remfx.callbacks import log_wandb_audio_batch
-from einops import rearrange
 from remfx import effects
 import asteroid
 import random
@@ -51,7 +48,7 @@ class RemFXChainInference(pl.LightningModule):
         self.output_str = "IN_SISDR,OUT_SISDR,IN_STFT,OUT_STFT\n"
         self.use_all_effect_models = use_all_effect_models
 
-    def forward(self, batch, batch_idx, order=None):
+    def forward(self, batch, batch_idx, order=None, verbose=False):
         x, y, _, rem_fx_labels = batch
         # Use chain of effects defined in config
         if order:
@@ -79,25 +76,19 @@ class RemFXChainInference(pl.LightningModule):
                 ]
                 for effect_label in rem_fx_labels
             ]
+            effects_present_name = [
+                [
+                    ALL_EFFECTS[i].__name__
+                    for i, effect in enumerate(effect_label)
+                    if effect == 1.0
+                ]
+                for effect_label in rem_fx_labels
+            ]
+            if verbose:
+                print("Detected effects:", effects_present_name[0])
+                print("Removing effects...")
 
         output = []
-        # input_samples = rearrange(x, "b c t -> c (b t)").unsqueeze(0)
-        # target_samples = rearrange(y, "b c t -> c (b t)").unsqueeze(0)
-
-        # log_wandb_audio_batch(
-        #     logger=self.logger,
-        #     id="input_effected_audio",
-        #     samples=input_samples.cpu(),
-        #     sampling_rate=self.sample_rate,
-        #     caption="Input Data",
-        # )
-        # log_wandb_audio_batch(
-        #     logger=self.logger,
-        #     id="target_audio",
-        #     samples=target_samples.cpu(),
-        #     sampling_rate=self.sample_rate,
-        #     caption="Target Data",
-        # )
         with torch.no_grad():
             for i, (elem, effects_list) in enumerate(zip(x, effects_present)):
                 elem = elem.unsqueeze(0)  # Add batch dim
@@ -107,40 +98,12 @@ class RemFXChainInference(pl.LightningModule):
                     effect for effect in effects_order if effect in effect_list_names
                 ]
 
-                # log_wandb_audio_batch(
-                #     logger=self.logger,
-                #     id=f"{i}_Before",
-                #     samples=elem.cpu(),
-                #     sampling_rate=self.sample_rate,
-                #     caption=effects,
-                # )
                 for effect in effects:
                     # Sample the model
                     elem = self.model[effect].model.sample(elem)
-                #     log_wandb_audio_batch(
-                #         logger=self.logger,
-                #         id=f"{i}_{effect}",
-                #         samples=elem.cpu(),
-                #         sampling_rate=self.sample_rate,
-                #         caption=effects,
-                #     )
-                # log_wandb_audio_batch(
-                #     logger=self.logger,
-                #     id=f"{i}_After",
-                #     samples=elem.cpu(),
-                #     sampling_rate=self.sample_rate,
-                #     caption=effects,
-                # )
                 output.append(elem.squeeze(0))
         output = torch.stack(output)
 
-        # log_wandb_audio_batch(
-        #     logger=self.logger,
-        #     id="output_audio",
-        #     samples=output_samples.cpu(),
-        #     sampling_rate=self.sample_rate,
-        #     caption="Output Data",
-        # )
         loss = self.mrstftloss(output, y) + self.l1loss(output, y) * 100
         return loss, output
 
@@ -182,13 +145,14 @@ class RemFXChainInference(pl.LightningModule):
                 )
                 # print(f"Input_{metric}", negate * self.metrics[metric](x, y))
                 # print(f"test_{metric}", negate * self.metrics[metric](output, y))
-                self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
-            self.output_str += "\n"
+                # self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
+            # self.output_str += "\n"
         return loss
 
     def on_test_end(self) -> None:
-        with open("output.csv", "w") as f:
-            f.write(self.output_str)
+        pass
+        # with open("output.csv", "w") as f:
+        # f.write(self.output_str)
 
     def sample(self, batch):
         return self.forward(batch, 0)[1]
@@ -300,13 +264,14 @@ class RemFX(pl.LightningModule):
                 )
                 # print(f"Input_{metric}", negate * self.metrics[metric](x, y))
                 # print(f"test_{metric}", negate * self.metrics[metric](output, y))
-                self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
-            self.output_str += "\n"
+                # self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
+            # self.output_str += "\n"
         return loss
 
     def on_test_end(self) -> None:
-        with open("output.csv", "w") as f:
-            f.write(self.output_str)
+        pass
+        # with open("output.csv", "w") as f:
+        # f.write(self.output_str)
 
 
 class OpenUnmixModel(nn.Module):
@@ -375,21 +340,6 @@ class DemucsModel(nn.Module):
 
     def sample(self, x: Tensor) -> Tensor:
         return self.model(x).squeeze(1)
-
-
-class DiffusionGenerationModel(nn.Module):
-    def __init__(self, n_channels: int = 1):
-        super().__init__()
-        self.model = DiffusionModel(in_channels=n_channels)
-
-    def forward(self, batch):
-        x, target = batch
-        sampled_out = self.model.sample(x)
-        return self.model(x), sampled_out
-
-    def sample(self, x: Tensor, num_steps: int = 10) -> Tensor:
-        noise = torch.randn(x.shape).to(x)
-        return self.model.sample(noise, num_steps=num_steps)
 
 
 class DPTNetModel(nn.Module):

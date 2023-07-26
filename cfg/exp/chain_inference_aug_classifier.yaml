@@ -6,7 +6,7 @@ seed: 12345
 sample_rate: 48000
 chunk_size: 262144 # 5.5s
 logs_dir: "./logs"
-render_root: "/scratch/EffectSet"
+
 accelerator: "gpu"
 log_audio: True
 # Effects
@@ -23,7 +23,8 @@ effects_to_remove:
   - chorus
   - delay
 datamodule:
-  batch_size: 16
+  train_batch_size: 16
+  test_batch_size: 1
   num_workers: 8
 
 dcunet:
@@ -56,7 +57,7 @@ classifier:
     n_mels: 128
     sample_rate: ${sample_rate}
     model_sample_rate: ${sample_rate}
-    specaugment: False
+    specaugment: True
 classifier_ckpt: "ckpts/classifier.ckpt"
 
 ckpts:
@@ -75,7 +76,6 @@ ckpts:
   RandomPedalboardDelay:
     model: ${dcunet}
     ckpt_path: "ckpts/dcunet_delay_aug.ckpt"
-
 inference_effects_ordering:
   - "RandomPedalboardDistortion"
   - "RandomPedalboardCompressor"

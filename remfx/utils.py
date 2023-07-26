@@ -3,8 +3,6 @@ from typing import List, Tuple
 import pytorch_lightning as pl
 from omegaconf import DictConfig
 from pytorch_lightning.utilities import rank_zero_only
-from frechet_audio_distance import FrechetAudioDistance
-import numpy as np
 import torch
 import torchaudio
 from torch import nn
@@ -74,38 +72,10 @@ def log_hyperparameters(
     if "callbacks" in config:
         hparams["callbacks"] = config["callbacks"]
 
-    logger.experiment.config.update(hparams)
-
-
-class FADLoss(torch.nn.Module):
-    def __init__(self, sample_rate: float):
-        super().__init__()
-        self.fad = FrechetAudioDistance(
-            use_pca=False, use_activation=False, verbose=False
-        )
-        self.fad.model = self.fad.model.to("cpu")
-        self.sr = sample_rate
-
-    def forward(self, audio_background, audio_eval):
-        embds_background = []
-        embds_eval = []
-        for sample in audio_background:
-            embd = self.fad.model.forward(sample.T.cpu().detach().numpy(), self.sr)
-            embds_background.append(embd.cpu().detach().numpy())
-        for sample in audio_eval:
-            embd = self.fad.model.forward(sample.T.cpu().detach().numpy(), self.sr)
-            embds_eval.append(embd.cpu().detach().numpy())
-        embds_background = np.concatenate(embds_background, axis=0)
-        embds_eval = np.concatenate(embds_eval, axis=0)
-        mu_background, sigma_background = self.fad.calculate_embd_statistics(
-            embds_background
-        )
-        mu_eval, sigma_eval = self.fad.calculate_embd_statistics(embds_eval)
-
-        fad_score = self.fad.calculate_frechet_distance(
-            mu_background, sigma_background, mu_eval, sigma_eval
-        )
-        return fad_score
+    if type(trainer.logger) == pl.loggers.CSVLogger:
+        logger.log_hyperparams(hparams)
+    else:
+        logger.experiment.config.update(hparams)
 
 
 def create_random_chunks(

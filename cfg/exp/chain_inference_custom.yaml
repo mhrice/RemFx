@@ -6,7 +6,7 @@ seed: 12345
 sample_rate: 48000
 chunk_size: 262144 # 5.5s
 logs_dir: "./logs"
-render_root: "/scratch/EffectSet"
+
 accelerator: "gpu"
 log_audio: True
 # Effects
@@ -23,7 +23,8 @@ effects_to_remove:
   - chorus
   - delay
 datamodule:
-  batch_size: 1
+  train_batch_size: 1
+  test_batch_size: 1
   num_workers: 8
   train_dataset: None
   val_dataset: None

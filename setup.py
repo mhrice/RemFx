@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 NAME = "remfx"
 DESCRIPTION = "Universal audio effect removal"
-URL = ""
+URL = "https://github.com/mhrice/RemFx"
 EMAIL = "m.rice@se22.qmul.ac.uk"
 AUTHOR = "Matthew Rice"
 REQUIRES_PYTHON = ">=3.8.0"
@@ -35,18 +35,14 @@ setup(
         "scipy",
         "numpy",
         "torchvision",
-        "pytorch-lightning",
+        "pytorch-lightning>=2.0.0",
         "numba",
         "wandb",
-        "audio-diffusion-pytorch",
-        "ema_pytorch",
         "einops",
-        "librosa",
         "hydra-core",
         "auraloss",
         "pyloudnorm",
         "pedalboard",
-        "frechet_audio_distance",
         "asteroid",
     ],
     include_package_data=True,

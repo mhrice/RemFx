@@ -18,7 +18,6 @@ from auraloss.freq import MultiResolutionSTFTLoss
 
 STFT_THRESH = 1e-3
 ALL_EFFECTS = effect_lib.Pedalboard_Effects
-# print(ALL_EFFECTS)
 
 
 vocalset_splits = {
@@ -45,16 +44,6 @@ vocalset_splits = {
 }
 
 guitarset_splits = {"train": ["00", "01", "02", "03"], "val": ["04"], "test": ["05"]}
-idmt_guitar_splits = {
-    "train": ["classical", "country_folk", "jazz", "latin", "metal", "pop"],
-    "val": ["reggae", "ska"],
-    "test": ["rock", "blues"],
-}
-idmt_bass_splits = {
-    "train": ["BE", "BEQ"],
-    "val": ["VIF"],
-    "test": ["VIS"],
-}
 dsd_100_splits = {
     "train": ["train"],
     "val": ["val"],
@@ -93,38 +82,8 @@ def locate_files(root: str, mode: str):
         ]
         print(f"Found {len(files)} files in GuitarSet {mode}.")
         file_list.append(sorted(files))
-    # # ------------------------- IDMT-SMT-GUITAR -------------------------
-    # idmt_smt_guitar_dir = os.path.join(root, "IDMT-SMT-GUITAR_V2")
-    # if os.path.isdir(idmt_smt_guitar_dir):
-    #     files = glob.glob(
-    #         os.path.join(
-    #             idmt_smt_guitar_dir, "IDMT-SMT-GUITAR_V2", "dataset4", "**", "*.wav"
-    #         ),
-    #         recursive=True,
-    #     )
-    #     files = [
-    #         f
-    #         for f in files
-    #         if os.path.basename(f).split("_")[0] in idmt_guitar_splits[mode]
-    #     ]
-    #     file_list.append(sorted(files))
-    #     print(f"Found {len(files)} files in IDMT-SMT-Guitar {mode}.")
-    # ------------------------- IDMT-SMT-BASS -------------------------
-    # idmt_smt_bass_dir = os.path.join(root, "IDMT-SMT-BASS")
-    # if os.path.isdir(idmt_smt_bass_dir):
-    #     files = glob.glob(
-    #         os.path.join(idmt_smt_bass_dir, "**", "*.wav"),
-    #         recursive=True,
-    #     )
-    #     files = [
-    #         f
-    #         for f in files
-    #         if os.path.basename(os.path.dirname(f)) in idmt_bass_splits[mode]
-    #     ]
-    #     file_list.append(sorted(files))
-    #     print(f"Found {len(files)} files in IDMT-SMT-Bass {mode}.")
     # ------------------------- DSD100 ---------------------------------
-    dsd_100_dir = os.path.join(root, "DSD100")
+    dsd_100_dir = os.path.join(root, "DSD100/DSD100")
     if os.path.isdir(dsd_100_dir):
         files = glob.glob(
             os.path.join(dsd_100_dir, mode, "**", "*.wav"),
@@ -468,7 +427,13 @@ class EffectDataset(Dataset):
                     chunk = None
                     random_dataset_choice = random.choice(self.files)
                     while chunk is None:
-                        random_file_choice = random.choice(random_dataset_choice)
+                        try:
+                            random_file_choice = random.choice(random_dataset_choice)
+                        except IndexError:
+                            print("IndexError")
+                            print(random_dataset_choice)
+                            print(random_file_choice)
+                            raise IndexError
                         chunk = select_random_chunk(
                             random_file_choice, self.chunk_size, self.sample_rate
                         )
@@ -613,7 +578,10 @@ class EffectDataset(Dataset):
             normalized_wet = self.normalize(wet)
 
             # Check STFT, pick different effects if necessary
-            stft = self.mrstft(normalized_wet, normalized_dry)
+            if num_removed_effects == 0:
+                # No need to check if no effects removed
+                break
+            stft = self.mrstft(normalized_wet.unsqueeze(0), normalized_dry.unsqueeze(0))
         return normalized_dry, normalized_wet, dry_labels_tensor, wet_labels_tensor
 
 

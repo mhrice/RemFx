@@ -42,9 +42,7 @@ class AudioCallback(Callback):
             )
             self.log_train_audio = False
 
-    def on_validation_batch_start(
-        self, trainer, pl_module, batch, batch_idx, dataloader_idx
-    ):
+    def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx):
         x, target, _, rem_fx_labels = batch
         # Only run on first batch
         if batch_idx == 0 and self.log_audio:
@@ -92,6 +90,8 @@ def log_wandb_audio_batch(
     caption: str = "",
     max_items: int = 10,
 ):
+    if type(logger) != pl.loggers.WandbLogger:
+        return
     num_items = samples.shape[0]
     samples = rearrange(samples, "b c t -> b t c")
     for idx in range(num_items):

@@ -125,7 +125,6 @@ class TCN(nn.Module):
         self.buffer = torch.zeros(2, self.receptive_field + self.block_size - 1)
 
     def forward(self, x: Tensor) -> Tensor:
-        x_in = x
         for _, block in enumerate(self.process_blocks):
             x = block(x)
         y_hat = torch.tanh(self.output(x))
