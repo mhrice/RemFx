@@ -45,6 +45,7 @@ def main(cfg: DictConfig):
 
     logger = hydra.utils.instantiate(cfg.logger, _convert_="partial")
     log.info(f"Instantiating trainer <{cfg.trainer._target_}>.")
+    cfg.trainer.accelerator = "gpu" if torch.cuda.is_available() else "cpu"
     trainer = hydra.utils.instantiate(
         cfg.trainer, callbacks=callbacks, logger=logger, _convert_="partial"
     )
@@ -68,6 +69,7 @@ def main(cfg: DictConfig):
         shuffle_effect_order=cfg.inference_effects_shuffle,
         use_all_effect_models=cfg.inference_use_all_effect_models,
     )
+
     trainer.test(model=inference_model, datamodule=datamodule)
 
 

@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # Example usage:
-# ./remfx_detect.sh wet.wav -o examples/output.wav
+# scripts/remfx_detect.sh wet.wav -o examples/output.wav
 # first argument is required, second argument is optional
 
 # Check if first argument is empty

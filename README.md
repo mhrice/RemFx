@@ -16,12 +16,12 @@ This repo can be used for many different tasks. Here are some examples.
 ## Run RemFX Detect on a single file
 First, need to download the checkpoints from [zenodo](https://zenodo.org/record/8179396)
 ```
-./download_checkpoints.sh
-./remfx_detect.sh wet.wav -o dry.wav
+scripts/download_checkpoints.sh
+scripts/remfx_detect.sh wet.wav -o dry.wav
 ```
 ## Download the [General Purpose Audio Effect Removal evaluation datasets](https://zenodo.org/record/8187288)
 ```
-./download_eval_datasets.sh
+scripts/download_eval_datasets.sh
 ```
 
 ## Download the starter datasets
@@ -73,28 +73,28 @@ Also note that the training assumes you have a GPU. To train on CPU, set `accele
 First download the General Purpose Audio Effect Removal evaluation datasets (see above).
 To use the pretrained RemFX model, download the checkpoints
 ```
-./download_checkpoints.sh
+scripts/download_checkpoints.sh
 ```
 Then run the evaluation script, select the RemFX configuration, between `remfx_oracle`, `remfx_detect`, and `remfx_all`. Then select N, the number of effects to remove.
 ```
-./eval.sh remfx_detect 0-0
-./eval.sh remfx_detect 1-1
-./eval.sh remfx_detect 2-2
-./eval.sh remfx_detect 3-3
-./eval.sh remfx_detect 4-4
-./eval.sh remfx_detect 5-5
+scripts/eval.sh remfx_detect 0-0
+scripts/eval.sh remfx_detect 1-1
+scripts/eval.sh remfx_detect 2-2
+scripts/eval.sh remfx_detect 3-3
+scripts/eval.sh remfx_detect 4-4
+scripts/eval.sh remfx_detect 5-5
 
 ```
 To eval a custom monolithic model, first train a model (see Training)
 Then run the evaluation script, with the config used and checkpoint_path.
 ```
-./eval.sh distortion_aug 0-0 -ckpt "logs/ckpts/2023-07-26-10-10-27/epoch\=05-valid_loss\=8.623.ckpt"
+scripts/eval.sh distortion_aug 0-0 -ckpt "logs/ckpts/2023-07-26-10-10-27/epoch\=05-valid_loss\=8.623.ckpt"
 ```
 
 To eval a custom effect-specific model as part of the inference chain, first train a model (see Training), then edit `cfg/exp/remfx_{desired_configuration}.yaml -> ckpts -> {effect}`.
 Then run the evaluation script.
 ```
-./eval.sh remfx_detect 0-0
+scripts/eval.sh remfx_detect 0-0
 ```
 
 The script assumes that RemFX_eval_datasets is in the top-level directory.

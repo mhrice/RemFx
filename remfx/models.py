@@ -143,16 +143,7 @@ class RemFXChainInference(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-                # print(f"Input_{metric}", negate * self.metrics[metric](x, y))
-                # print(f"test_{metric}", negate * self.metrics[metric](output, y))
-                # self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
-            # self.output_str += "\n"
         return loss
-
-    def on_test_end(self) -> None:
-        pass
-        # with open("output.csv", "w") as f:
-        # f.write(self.output_str)
 
     def sample(self, batch):
         return self.forward(batch, 0)[1]
@@ -438,7 +429,6 @@ def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
 
     return mixed_x, mixed_y, lam
 
-
 class FXClassifier(pl.LightningModule):
     def __init__(
         self,
@@ -458,42 +448,7 @@ class FXClassifier(pl.LightningModule):
         self.mixup = mixup
         self.label_smoothing = label_smoothing
 
-        self.loss_fn = torch.nn.CrossEntropyLoss(label_smoothing=label_smoothing)
         self.loss_fn = torch.nn.BCELoss()
-
-        if False:
-            self.train_f1 = torchmetrics.classification.MultilabelF1Score(
-                5, average="none", multidim_average="global"
-            )
-            self.val_f1 = torchmetrics.classification.MultilabelF1Score(
-                5, average="none", multidim_average="global"
-            )
-            self.test_f1 = torchmetrics.classification.MultilabelF1Score(
-                5, average="none", multidim_average="global"
-            )
-
-            self.train_f1_avg = torchmetrics.classification.MultilabelF1Score(
-                5, threshold=0.5, average="macro", multidim_average="global"
-            )
-            self.val_f1_avg = torchmetrics.classification.MultilabelF1Score(
-                5, threshold=0.5, average="macro", multidim_average="global"
-            )
-            self.test_f1_avg = torchmetrics.classification.MultilabelF1Score(
-                5, threshold=0.5, average="macro", multidim_average="global"
-            )
-
-            self.metrics = {
-                "train": self.train_acc,
-                "valid": self.val_acc,
-                "test": self.test_acc,
-            }
-
-            self.avg_metrics = {
-                "train": self.train_f1_avg,
-                "valid": self.val_f1_avg,
-                "test": self.test_f1_avg,
-            }
-
         self.metrics = torch.nn.ModuleDict()
         for effect in self.effects:
             self.metrics[f"train_{effect}_acc"] = torchmetrics.classification.Accuracy(

@@ -1,13 +1,13 @@
 #! /bin/bash
 
 # Example usage:
-# ./eval.sh remfx_detect 0-0
-# ./eval.sh distortion_aug 0-0 -ckpt logs/ckpts/2023-01-21-12-21-44
+# scripts/eval.sh remfx_detect 0-0
+# scripts/eval.sh distortion_aug 0-0 -ckpt logs/ckpts/2023-01-21-12-21-44
 # First 2 arguments are required, third argument is optional
 
 # Default value for the optional parameter
 ckpt_path=""
-
+export DATASET_ROOT=RemFX_eval_datasets
 # Function to display script usage
 function display_usage {
     echo "Usage: $0 <experiment> <dataset> [-ckpt {ckpt_path}]"
