@@ -1,0 +1,10 @@
+# @package _global_
+logger:
+  _target_: pytorch_lightning.loggers.WandbLogger
+  project: ${oc.env:WANDB_PROJECT}
+  entity: ${oc.env:WANDB_ENTITY}
+  # offline: False  # set True to store all logs only locally
+  job_type: "train"
+  group: ""
+  save_dir: "."
+  log_model: True

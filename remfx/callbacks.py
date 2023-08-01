@@ -50,7 +50,7 @@ class AudioCallback(Callback):
                 # Avoids circular import
                 from remfx.models import RemFXChainInference
 
-                if type(pl_module) == RemFXChainInference:
+                if isinstance(pl_module, RemFXChainInference):
                     y = pl_module.sample(batch)
                     effects_present_name = [
                         [

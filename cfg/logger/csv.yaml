@@ -1,0 +1,5 @@
+# @package _global_
+logger:
+  _target_: pytorch_lightning.loggers.CSVLogger
+  save_dir: "."
+  version: ${now:%Y-%m-%d-%H-%M-%S}
