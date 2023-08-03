@@ -55,12 +55,11 @@ class RemFXChainInference(pl.LightningModule):
             effects_order = order
         else:
             effects_order = self.effect_order
-
         # Use classifier labels
         if self.classifier:
             threshold = 0.5
             with torch.no_grad():
-                labels = torch.sigmoid(self.classifier(x))
+                labels = torch.hstack(self.classifier(x))
                 rem_fx_labels = torch.where(labels > threshold, 1.0, 0.0)
         if self.use_all_effect_models:
             effects_present = [
@@ -253,16 +252,7 @@ class RemFX(pl.LightningModule):
                     prog_bar=True,
                     sync_dist=True,
                 )
-                # print(f"Input_{metric}", negate * self.metrics[metric](x, y))
-                # print(f"test_{metric}", negate * self.metrics[metric](output, y))
-                # self.output_str += f"{negate * self.metrics[metric](x, y).item():.4f},{negate * self.metrics[metric](output, y).item():.4f},"
-            # self.output_str += "\n"
         return loss
-
-    def on_test_end(self) -> None:
-        pass
-        # with open("output.csv", "w") as f:
-        # f.write(self.output_str)
 
 
 class OpenUnmixModel(nn.Module):
@@ -418,7 +408,6 @@ def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
     else:
         lam = 1
 
-    print(lam)
     if np.random.rand() > 0.5:
         index = torch.randperm(batch_size).to(x.device)
         mixed_x = lam * x + (1 - lam) * x[index, :]
@@ -428,6 +417,7 @@ def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
         mixed_y = y
 
     return mixed_x, mixed_y, lam
+
 
 class FXClassifier(pl.LightningModule):
     def __init__(

@@ -91,7 +91,6 @@ class TCN(nn.Module):
         self.causal = causal
         self.estimate_loudness = estimate_loudness
 
-        print(f"Causal: {self.causal}")
         if self.causal:
             self.crop_fn = causal_crop
         else:

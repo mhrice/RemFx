@@ -16,7 +16,8 @@ def main(cfg: DictConfig):
     datamodule = hydra.utils.instantiate(cfg.datamodule, _convert_="partial")
     log.info(f"Instantiating model <{cfg.model._target_}>.")
     model = hydra.utils.instantiate(cfg.model, _convert_="partial")
-    state_dict = torch.load(cfg.ckpt_path, map_location=torch.device("cpu"))[
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    state_dict = torch.load(cfg.ckpt_path, map_location=device)[
         "state_dict"
     ]
     model.load_state_dict(state_dict)

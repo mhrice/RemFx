@@ -10,14 +10,19 @@ git clone https://github.com/mhrice/RemFx.git
 cd RemFx
 git submodule update --init --recursive
 pip install -e . ./umx
+pip install --no-deps hearbaseline
 ```
+Due to incompatabilities with hearbaseline's dependencies (namely numpy/numba) and our other packages, we need to install hearbaseline with no dependencies.
 # Usage
 This repo can be used for many different tasks. Here are some examples.
 ## Run RemFX Detect on a single file
 First, need to download the checkpoints from [zenodo](https://zenodo.org/record/8179396)
 ```
 scripts/download_checkpoints.sh
-scripts/remfx_detect.sh wet.wav -o dry.wav
+```
+Then run the detect script. This repo contains an example file `example.wav` from our test dataset which contains 2 effects (chorus and delay) applied to a guitar.
+```
+scripts/remfx_detect.sh example.wav -o dry.wav
 ```
 ## Download the [General Purpose Audio Effect Removal evaluation datasets](https://zenodo.org/record/8187288)
 ```
@@ -68,6 +73,18 @@ By default, the dataset needed for the experiment is generated before training.
 If you have generated the dataset separately (see Generate datasets used in the paper), be sure to set `render_files=False` in the config or command-line, and set `render_root={path/to/dataset}` if it is in a custom location.
 
 Also note that the training assumes you have a GPU. To train on CPU, set `accelerator=null` in the config or command-line.
+
+### Logging
+Default CSV logger
+To use WANDB logger:
+
+export WANDB_PROJECT={desired_wandb_project}
+export WANDB_ENTITY={your_wandb_username}
+
+## Panns pretrianed
+```
+wget https://zenodo.org/record/6332525/files/hear2021-panns_hear.pth
+```
 
 ## Evaluate models on the General Purpose Audio Effect Removal evaluation datasets (Table 4 from the paper)
 First download the General Purpose Audio Effect Removal evaluation datasets (see above).
@@ -148,26 +165,3 @@ Some relevant dataset/training parameters descriptions
 - `distortion`
 - `reverb`
 - `delay`
-
-<!-- # DO WE NEED THIS?
-## Evaluate RemFXwith a custom directory
-Assumes directory is structured as
-- root
-    - clean
-        - file1.wav
-        - file2.wav
-        - file3.wav
-    - effected
-        - file1.wav
-        - file2.wav
-        - file3.wav
-
-First set the dataset root:
-```
-export DATASET_ROOT={path/to/datasets}
-```
-
-Then run
-```
-python scripts/chain_inference.py +exp=chain_inference_custom
-``` -->

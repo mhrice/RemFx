@@ -171,7 +171,6 @@ class Cnn14(nn.Module):
 
         self.fc1 = nn.Linear(2048, 2048, bias=True)
 
-        # self.fc_audioset = nn.Linear(2048, num_classes, bias=True)
         self.heads = torch.nn.ModuleList()
         for _ in range(num_classes):
             self.heads.append(nn.Linear(2048, 1, bias=True))
@@ -190,7 +189,6 @@ class Cnn14(nn.Module):
     def init_weight(self):
         init_bn(self.bn0)
         init_layer(self.fc1)
-        # init_layer(self.fc_audioset)
 
     def forward(self, x: torch.Tensor, train: bool = False):
         """
@@ -202,20 +200,11 @@ class Cnn14(nn.Module):
         x = self.melspec(x)
 
         if self.specaugment and train:
-            # import matplotlib.pyplot as plt
-            # fig, axs = plt.subplots(2, 1, sharex=True)
-            # axs[0].imshow(x[0, :, :, :].detach().squeeze().cpu().numpy())
             x = self.freq_mask(x)
             x = self.time_mask(x)
-            # axs[1].imshow(x[0, :, :, :].detach().squeeze().cpu().numpy())
-            # plt.savefig("spec_augment.png", dpi=300)
-
-        # x = x.permute(0, 2, 1, 3)
-        # x = self.bn0(x)
-        # x = x.permute(0, 2, 1, 3)
 
         # apply standardization
-        x = (x - x.mean(dim=0, keepdim=True)) / x.std(dim=0, keepdim=True)
+        x = (x - x.mean(dim=(2, 3), keepdim=True)) / x.std(dim=(2, 3), keepdim=True)
 
         x = self.conv_block1(x, pool_size=(2, 2), pool_type="avg")
         x = F.dropout(x, p=0.2, training=train)
@@ -240,8 +229,6 @@ class Cnn14(nn.Module):
         outputs = []
         for head in self.heads:
             outputs.append(torch.sigmoid(head(x)))
-
-        # clipwise_output = self.fc_audioset(x)
 
         return outputs
 

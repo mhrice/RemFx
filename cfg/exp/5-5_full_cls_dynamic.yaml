@@ -5,7 +5,7 @@ defaults:
 seed: 12345
 sample_rate: 48000
 chunk_size: 262144 # 5.5s
-logs_dir: "/scratch/cjs-logs"
+logs_dir: "./logs"
 render_files: True
 
 accelerator: "gpu"

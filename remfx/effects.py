@@ -84,7 +84,6 @@ def biqaud(
         a2 = 1 - alpha / A
     else:
         pass
-        # raise ValueError(f"Invalid filter_type: {filter_type}.")
 
     b = np.array([b0, b1, b2]) / a0
     a = np.array([a0, a1, a2]) / a0
@@ -291,7 +290,6 @@ class RandomVolumeAutomation(torch.nn.Module):
             gain_db[samples_filled : samples_filled + segment_samples] = fade
             samples_filled = samples_filled + segment_samples
 
-        # print(gain_db)
         x *= 10 ** (gain_db / 20.0)
         return x
 
