@@ -12,6 +12,7 @@ from remfx.utils import spectrogram
 from remfx.tcn import TCN
 from remfx.utils import causal_crop
 from remfx import effects
+from remfx.classifier import Cnn14
 import asteroid
 import random
 
@@ -438,18 +439,53 @@ class FXClassifier(pl.LightningModule):
         self.mixup = mixup
         self.label_smoothing = label_smoothing
 
-        self.loss_fn = torch.nn.BCELoss()
-        self.metrics = torch.nn.ModuleDict()
-        for effect in self.effects:
-            self.metrics[f"train_{effect}_acc"] = torchmetrics.classification.Accuracy(
-                task="binary"
+        if isinstance(self.network, Cnn14):
+            self.loss_fn = torch.nn.BCELoss()
+
+            self.metrics = torch.nn.ModuleDict()
+            for effect in self.effects:
+                self.metrics[
+                    f"train_{effect}_acc"
+                ] = torchmetrics.classification.Accuracy(task="binary")
+                self.metrics[
+                    f"valid_{effect}_acc"
+                ] = torchmetrics.classification.Accuracy(task="binary")
+                self.metrics[
+                    f"test_{effect}_acc"
+                ] = torchmetrics.classification.Accuracy(task="binary")
+        else:
+            self.loss_fn = torch.nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+            self.train_f1 = torchmetrics.classification.MultilabelF1Score(
+                5, average="none", multidim_average="global"
             )
-            self.metrics[f"valid_{effect}_acc"] = torchmetrics.classification.Accuracy(
-                task="binary"
+            self.val_f1 = torchmetrics.classification.MultilabelF1Score(
+                5, average="none", multidim_average="global"
             )
-            self.metrics[f"test_{effect}_acc"] = torchmetrics.classification.Accuracy(
-                task="binary"
+            self.test_f1 = torchmetrics.classification.MultilabelF1Score(
+                5, average="none", multidim_average="global"
             )
+
+            self.train_f1_avg = torchmetrics.classification.MultilabelF1Score(
+                5, threshold=0.5, average="macro", multidim_average="global"
+            )
+            self.val_f1_avg = torchmetrics.classification.MultilabelF1Score(
+                5, threshold=0.5, average="macro", multidim_average="global"
+            )
+            self.test_f1_avg = torchmetrics.classification.MultilabelF1Score(
+                5, threshold=0.5, average="macro", multidim_average="global"
+            )
+
+            self.metrics = {
+                "train": self.train_f1,
+                "valid": self.val_f1,
+                "test": self.test_f1,
+            }
+
+            self.avg_metrics = {
+                "train": self.train_f1_avg,
+                "valid": self.val_f1_avg,
+                "test": self.test_f1_avg,
+            }
 
     def forward(self, x: torch.Tensor, train: bool = False):
         return self.network(x, train=train)
@@ -467,8 +503,13 @@ class FXClassifier(pl.LightningModule):
         else:
             outputs = self(x, train)
             loss = 0
-            for idx, output in enumerate(outputs):
-                loss += self.loss_fn(output.squeeze(-1), wet_label[..., idx])
+            # Multi-head binary loss
+            if isinstance(self.network, Cnn14):
+                for idx, output in enumerate(outputs):
+                    loss += self.loss_fn(output.squeeze(-1), wet_label[..., idx])
+            else:
+                # Output is a 2d tensor
+                loss = self.loss_fn(outputs, wet_label)
 
         self.log(
             f"{mode}_loss",
@@ -480,32 +521,57 @@ class FXClassifier(pl.LightningModule):
             sync_dist=True,
         )
 
-        acc_metrics = []
-        for idx, effect_name in enumerate(self.effects):
-            acc_metric = self.metrics[f"{mode}_{effect_name}_acc"](
-                outputs[idx].squeeze(-1), wet_label[..., idx]
-            )
+        if isinstance(self.network, Cnn14):
+            acc_metrics = []
+            for idx, effect_name in enumerate(self.effects):
+                acc_metric = self.metrics[f"{mode}_{effect_name}_acc"](
+                    outputs[idx].squeeze(-1), wet_label[..., idx]
+                )
+                self.log(
+                    f"{mode}_{effect_name}_acc",
+                    acc_metric,
+                    on_step=True,
+                    on_epoch=True,
+                    prog_bar=True,
+                    logger=True,
+                    sync_dist=True,
+                )
+                acc_metrics.append(acc_metric)
+
             self.log(
-                f"{mode}_{effect_name}_acc",
-                acc_metric,
+                f"{mode}_avg_acc",
+                torch.mean(torch.stack(acc_metrics)),
                 on_step=True,
                 on_epoch=True,
                 prog_bar=True,
                 logger=True,
                 sync_dist=True,
             )
-            acc_metrics.append(acc_metric)
+        else:
+            metrics = self.metrics[mode](torch.sigmoid(outputs), wet_label.long())
+            for idx, effect_name in enumerate(self.effects):
+                self.log(
+                    f"{mode}_f1_{effect_name}",
+                    metrics[idx],
+                    on_step=True,
+                    on_epoch=True,
+                    prog_bar=True,
+                    logger=True,
+                    sync_dist=True,
+                )
+            avg_metrics = self.avg_metrics[mode](
+                torch.sigmoid(outputs), wet_label.long()
+            )
 
-        self.log(
-            f"{mode}_avg_acc",
-            torch.mean(torch.stack(acc_metrics)),
-            on_step=True,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
-
+            self.log(
+                f"{mode}_avg_acc",
+                avg_metrics,
+                on_step=True,
+                on_epoch=True,
+                prog_bar=True,
+                logger=True,
+                sync_dist=True,
+            )
         return loss
 
     def training_step(self, batch, batch_idx):
