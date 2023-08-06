@@ -7,7 +7,7 @@ This repo contains the code for the paper [General Purpose Audio Effect Removal]
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1LoLgL1YHzIQfILEayDmRUZzDZzJpD6rD)
 [![arXiv](https://img.shields.io/badge/arXiv-1234.56789-b31b1b.svg)](https://arxiv.org/abs/1234.56789)
 
-![RemFX Block diagram](remfx-headline.jpg?raw=true "Title")
+<img width="700px" src="remfx-headline.jpg">
 
 Listening examples can be found [here](https://csteinmetz1.github.io/RemFX/).
 
