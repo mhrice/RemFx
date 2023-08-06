@@ -72,7 +72,7 @@ def log_hyperparameters(
     if "callbacks" in config:
         hparams["callbacks"] = config["callbacks"]
 
-    if type(trainer.logger) == pl.loggers.CSVLogger:
+    if isinstance(logger, pl.loggers.CSVLogger):
         logger.log_hyperparams(hparams)
     else:
         logger.experiment.config.update(hparams)
