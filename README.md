@@ -76,6 +76,12 @@ Then set the dataset root:
 export DATASET_ROOT={path/to/datasets}
 ```
 
+These starter datasets come from the following: 
+- Vocals: [VocalSet](https://zenodo.org/record/1442513)
+- Guitars: [GuitarSet](https://zenodo.org/record/3371780)
+- Bass: [DSD100](https://sigsep.github.io/datasets/dsd100.html)
+- Drums: [IDMT-SMT-Drums](https://zenodo.org/record/7544164)
+
 ## Training
 Before training, it is important that you have downloaded the starter datasets (see above) and set `$DATASET_ROOT`.
 This project uses the [pytorch-lightning](https://www.pytorchlightning.ai/index.html) framework and [hydra](https://hydra.cc/) for configuration management. All experiments are defined in `cfg/exp/`. To train with an existing experiment run
