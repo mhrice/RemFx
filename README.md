@@ -1,23 +1,36 @@
-# General Purpose Audio Effect Removal
-Removing multiple audio effects from multiple sources with compositional audio effect removal using source separation and speech enhancement models.
+<div align="center">
 
-This repo contains the code for the paper [General Purpose Audio Effect Removal](https://arxiv.org/abs/2110.00484). (Todo: Paper link broken, Arxiv badge broken, citation, license)
+# RemFx 
+General Purpose Audio Effect Removal
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1LoLgL1YHzIQfILEayDmRUZzDZzJpD6rD)
 [![arXiv](https://img.shields.io/badge/arXiv-1234.56789-b31b1b.svg)](https://arxiv.org/abs/1234.56789)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1LoLgL1YHzIQfILEayDmRUZzDZzJpD6rD)
+[![Dataset](https://zenodo.org/badge/DOI/10.5281/zenodo.8187288.svg)](https://zenodo.org/record/8187288)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-<img width="700px" src="remfx-headline.jpg">
 
 Listening examples can be found [here](https://csteinmetz1.github.io/RemFX/).
 
+
+<img width="450px" src="remfx-headline.jpg">
+
 ## Abstract
+</div>
 
 Although the design and application of audio effects is well understood, the inverse problem of removing these effects is significantly more challenging and far less studied. Recently, deep learning has been applied to audio effect removal; however, existing approaches have focused on narrow formulations considering only one effect or source type at a time. In realistic scenarios, multiple effects are applied with varying source content. This motivates a more general task, which we refer to as general purpose audio effect removal. We developed a dataset for this task using five audio effects across four different sources and used it to train and evaluate a set of existing architectures. We found that no single model performed optimally on all effect types and sources. To address this, we introduced <b>RemFX</b>, an approach designed to mirror the compositionality of applied effects. We first trained a set of the best-performing effect-specific
 removal models and then leveraged an audio effect classification model to dynamically construct a graph of our models at inference. We found our approach to outperform single model baselines, although examples with many effects present remain challenging.
 
+```bibtex
+@inproceedings{rice2023remfx,
+    title={General Purpose Audio Effect Removal},
+    author={Rice, Matthew and Steinmetz, Christian J. and Fazekas, George and Reiss, Joshua D.},
+    booktitle={IEEE Workshop on Applications of Signal Processing to Audio and Acoustics},
+    year={2023}
+}
+```
 
-# Setup
+
+## Setup
 ```
 git clone https://github.com/mhrice/RemFx.git
 cd RemFx
@@ -29,9 +42,10 @@ Due to incompatabilities with hearbaseline's dependencies (namely numpy/numba) a
 <b>Please run the setup code before running any scripts.</b>
 All scripts should be launched from the top level after installing.
 
-# Usage
+## Usage
 This repo can be used for many different tasks. Here are some examples. Ensure you have run the setup code before running any scripts.
-## Run RemFX Detect on a single file
+
+### Run RemFX Detect on a single file
 Here we will attempt to detect, then remove effects that are present in an audio file. For the best results, use a file from our [evaluation dataset](https://zenodo.org/record/8187288). We support detection and removal of the following effects: chorus, delay, distortion, dynamic range compression, and reverb.
 
 First, we need to download the pytorch checkpoints from [zenodo](https://zenodo.org/record/8218621)
@@ -42,13 +56,13 @@ Then run the detect script. This repo contains an example file `example.wav` fro
 ```
 scripts/remfx_detect.sh example.wav -o dry.wav
 ```
-## Download the [General Purpose Audio Effect Removal evaluation datasets](https://zenodo.org/record/8187288)
+### Download the [General Purpose Audio Effect Removal evaluation datasets](https://zenodo.org/record/8187288)
 We provide a script to download and unzip the datasets used in table 4 of the paper.
 ```
 scripts/download_eval_datasets.sh
 ```
 
-## Download the starter datasets
+### Download the starter datasets
 
 If you'd like to train your own model and/or generate a dataset, you can download the starter datasets using the following command:
 
@@ -182,7 +196,7 @@ The dataset that is generated contains 8000 train examples, 1000 validation exam
 
 Note: if training, this process will be done automatically at the start of training. To disable this, set `render_files=False` in the config or command-line, and set `render_root={path/to/dataset}` if it is in a custom location.
 
-# Experimental parameters
+## Experimental parameters
 Some relevant dataset/training parameters descriptions
 - `num_kept_effects={[min, max]}` range of <b> Kept </b> effects to apply to each file. Inclusive.
 - `num_removed_effects={[min, max]}` range of <b> Removed </b> effects to apply to each file. Inclusive.
@@ -195,20 +209,20 @@ Some relevant dataset/training parameters descriptions
 - `datamodule.train_batch_size={batch_size}`. Change batch size (default: varies).
 - `logger=wandb`. Use weights and biases logger (default: csv). Ensure you set the wandb environment variables (see training section).
 
-## Effect Removal Models
+### Effect Removal Models
 - `umx`
 - `demucs`
 - `tcn`
 - `dcunet`
 - `dptnet`
 
-## Effect Classification Models
+### Effect Classification Models
 - `cls_vggish`
 - `cls_panns_pt`
 - `cls_wav2vec2`
 - `cls_wav2clip`
 
-## Effects
+### Effects
 - `delay`
 - `distortion`
 - `chorus`
