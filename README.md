@@ -200,7 +200,10 @@ The dataset that is generated contains 8000 train examples, 1000 validation exam
 - target.wav = the dry audio file
 - wet_effects.pt = serialized PyTorch file that contains a list of the effects applied to the wet audio file
 
+The effects list is in the order of Reverb, Chorus, Delay, Distortion, Compressor
+
 Note: if training, this process will be done automatically at the start of training. To disable this, set `render_files=False` in the config or command-line, and set `render_root={path/to/dataset}` if it is in a custom location.
+
 
 ## Experimental parameters
 Some relevant dataset/training parameters descriptions
